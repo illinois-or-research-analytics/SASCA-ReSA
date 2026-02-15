@@ -17,8 +17,8 @@ else()
     find_package(OpenMP REQUIRED)
 
     set(ABM_MAJOR_VERSION 6)
-    set(ABM_MINOR_VERSION 0)
-    set(ABM_PATCH_VERSION 1)
+    set(ABM_MINOR_VERSION 1)
+    set(ABM_PATCH_VERSION 0)
     set(ABM_VERSION
         ${ABM_MAJOR_VERSION}.
         ${ABM_MINOR_VERSION}.

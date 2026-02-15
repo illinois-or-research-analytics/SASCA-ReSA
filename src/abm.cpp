@@ -169,13 +169,33 @@ void ABM::FillInDegreeArr(Graph* graph, const std::unordered_map<int, int>& cont
     }
 }
 
+void ABM::FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr) {
+    for(auto const& node: graph->GetNodeSet()) {
+        if (!continuous_node_mapping.contains(node)) {
+            std::cerr << std::to_string(node) << " not in continuous node mapping " << std::endl;
+        }
+        int continuous_id = continuous_node_mapping.at(node);
+        num_authors_arr[continuous_id] = graph->GetIntAttribute("num_authors", node);
+    }
+}
+
+void ABM::FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr) {
+    for(auto const& node: graph->GetNodeSet()) {
+        if (!continuous_node_mapping.contains(node)) {
+            std::cerr << std::to_string(node) << " not in continuous node mapping " << std::endl;
+        }
+        int continuous_id = continuous_node_mapping.at(node);
+        author_reputation_arr[continuous_id] = graph->GetAuthorReputationForNode(node);
+    }
+}
+
 void ABM::InitializeFitness(Graph* graph) {
     this->AssignPeakFitnessValues(graph, graph->GetNodeSet());
     this->AssignFitnessLagDuration(graph, graph->GetNodeSet());
     this->AssignFitnessPeakDuration(graph, graph->GetNodeSet());
 }
 
-std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr) {
+std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr) {
     std::unordered_map<int, int> planted_nodes_line_number_map;
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
@@ -195,6 +215,8 @@ std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr
                 std::string current_fitness_peak_duration = line_map.at("fitness_peak_duration");
                 std::string current_preferential_attachment_weight = line_map.at("pa_weight");
                 std::string current_fitness_weight = line_map.at("fit_weight");
+                std::string current_num_authors_weight = line_map.at("num_authors_weight");
+                std::string current_author_reputation_weight = line_map.at("author_reputation_weight");
                 std::string current_alpha = line_map.at("alpha");
                 std::string current_out_degree = line_map.at("out_degree");
                 for(int i = 0; i < current_node_type_count; i ++) {
@@ -217,6 +239,12 @@ std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr
                     }
                     if (current_fitness_weight != "") {
                         fit_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_fitness_weight);
+                    }
+                    if (current_num_authors_weight != "") {
+                        num_authors_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_num_authors_weight);
+                    }
+                    if (current_author_reputation_weight != "") {
+                        author_reputation_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_author_reputation_weight);
                     }
                     if (current_out_degree != "") {
                         out_degree_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_out_degree);
@@ -292,19 +320,34 @@ int ABM::GetFinalGraphSize(Graph* graph) {
     return current_graph_size;
 }
 
-void ABM::PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, int len) {
+void ABM::PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len) {
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
-    if(this->preferential_weight != -1 &&  this->fitness_weight != -1) {
+    if(this->preferential_weight != -1 &&  this->fitness_weight != -1 && this->num_authors_weight != -1 && this->author_reputation_weight != -1) {
         for(int i = 0; i < len; i ++) {
             double pa_uniform = this->preferential_weight;
             double fit_uniform = this->fitness_weight;
-            double sum = pa_uniform + fit_uniform;
+            double num_authors_uniform = this->num_authors_weight;
+            double author_reputation_uniform = this->author_reputation_weight;
+            double sum = pa_uniform + fit_uniform + num_authors_uniform + author_reputation_uniform;
             pa_weight_arr[i] = (double)pa_uniform / sum;
             fit_weight_arr[i] = (double)fit_uniform / sum;
+            num_authors_weight_arr[i] = (double)num_authors_uniform / sum;
+            author_reputation_weight_arr[i] = (double)author_reputation_uniform / sum;
         }
     } else {
         for(int i = 0; i < len; i ++) {
+            std::uniform_real_distribution<double> weights_uniform_distribution{0, 1};
+            double pa_uniform = weights_uniform_distribution(generator);
+            double fit_uniform = weights_uniform_distribution(generator);
+            double num_authors_uniform = weights_uniform_distribution(generator);
+            double author_reputation_uniform = weights_uniform_distribution(generator);
+            double sum = pa_uniform + fit_uniform + num_authors_uniform + author_reputation_uniform;
+            pa_weight_arr[i] = (double)pa_uniform / sum;
+            fit_weight_arr[i] = (double)fit_uniform / sum;
+            num_authors_weight_arr[i] = (double)num_authors_uniform / sum;
+            author_reputation_weight_arr[i] = (double)author_reputation_uniform / sum;
+            /*
             std::uniform_real_distribution<double> first_weights_uniform_distribution{0, 1};
             double first_uniform = first_weights_uniform_distribution(generator);
             std::vector<double> current_weight_array{first_uniform, 1 - first_uniform};
@@ -316,6 +359,7 @@ void ABM::PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, int 
             }
             pa_weight_arr[i] = current_weight_array[0];
             fit_weight_arr[i] = current_weight_array[1];
+            */
         }
     }
 }
@@ -373,13 +417,16 @@ void ABM::PopulateOutDegreeArr(int* out_degree_arr, int len) {
     }
 }
 
-void ABM::UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* pa_weight_arr, double* fit_weight_arr, int len) {
+void ABM::UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len) {
     for(int i = 0; i < len; i ++) {
         int current_node_id = next_node_id + i;
         graph->SetDoubleAttribute("pa_weight", current_node_id, pa_weight_arr[i]);
         graph->SetDoubleAttribute("fit_weight", current_node_id, fit_weight_arr[i]);
+        graph->SetDoubleAttribute("num_authors_weight", current_node_id, num_authors_weight_arr[i]);
+        graph->SetDoubleAttribute("author_reputation_weight", current_node_id, author_reputation_weight_arr[i]);
     }
 }
+
 
 void ABM::UpdateGraphAttributesFitnesses(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int,int>& continuous_node_mapping, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int initial_graph_size) {
     for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
@@ -421,6 +468,12 @@ std::vector<int> ABM::GetGraphAttributesGeneratorNodes(Graph* graph, int new_nod
         generator_nodes.push_back(std::stoi(current_value));
     }
     return generator_nodes;
+}
+
+void ABM::UpdateGraphAttributesAuthors(Graph* graph, int new_node, int author_id, int num_authors) {
+        graph->SetIntAttribute("author", new_node, author_id);
+        graph->SetIntAttribute("num_authors", new_node, num_authors);
+        graph->UpdateAuthorPublicationMap(author_id, new_node);
 }
 
 void ABM::UpdateGraphAttributesGeneratorNodes(Graph* graph, int new_node, const std::vector<int>& generator_nodes) {
@@ -573,14 +626,13 @@ int ABM::MakeUniformRandomCitations(Graph* graph, const std::unordered_map<int, 
     return actual_num_cited;
 }
 
-int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, double* pa_arr, double* fit_arr, double pa_weight, double fit_weight, int current_graph_size, int num_citations) {
+int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size, int num_citations) {
     if (num_citations <= 0) {
         return 0;
     }
     if (candidate_nodes.size() <= 0) {
         return 0;
     }
-
     int actual_num_cited = num_citations;
     if (candidate_nodes.size() < (size_t)num_citations) {
         actual_num_cited = candidate_nodes.size();
@@ -588,80 +640,67 @@ int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continu
     std::vector<std::pair<double, int>> element_index_vec;
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
-    /* std::uniform_real_distribution<double> wrs_uniform_distribution{std::numeric_limits<double>::min(), 1}; */
-    /*
-    std::uniform_real_distribution<double> wrs_uniform_distribution{0, 1};
-    double pa_sum = 0.0;
-    double rec_sum = 0.0;
-    double fit_sum = 0.0;
-    for(size_t i = 0; i < candidate_nodes.size(); i ++) {
-        int continuous_node_id = continuous_node_mapping.at(candidate_nodes.at(i));
-        double current_pa = pa_arr[continuous_node_id];
-        double current_rec = recency_arr[continuous_node_id];
-        double current_fit = fit_arr[continuous_node_id];
-        pa_sum += current_pa;
-        rec_sum += current_rec;
-        fit_sum += current_fit;
-    }
-    auto cmp = [](const std::pair<double, int> &left, const std::pair<double, int> &right) {
-        return left.first > right.first;
-    };
-    std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, decltype(cmp)> min_heap(cmp);
-    for (size_t i = 0; i < candidate_nodes.size(); i++) {
-        int continuous_node_id = continuous_node_mapping.at(candidate_nodes.at(i));
-        double current_pa = pa_arr[continuous_node_id] / pa_sum;
-        double current_rec = recency_arr[continuous_node_id] / rec_sum;
-        double current_fit = fit_arr[continuous_node_id] / fit_sum;
 
-        double weighted_score = (pa_weight * current_pa) + (rec_weight * current_rec) + (fit_weight * current_fit);
-
-        double base = wrs_uniform_distribution(generator);
-        double wrs_score = std::pow(base, 1.0 / weighted_score);
-        // double log_base = -wrs_exp_distribution(generator);
-        // double wrs_score = log_base / weighted_score;
-
-        if ((int)min_heap.size() < actual_num_cited) {
-            min_heap.emplace(wrs_score, candidate_nodes.at(i));
-        } else if (wrs_score > min_heap.top().first) {
-            min_heap.pop();
-            min_heap.emplace(wrs_score, candidate_nodes.at(i));
-        }
-    }
-
-    for (int i = 0; i < actual_num_cited; i++) {
-        citations[i] = min_heap.top().second;
-        min_heap.pop();
-    }
-    */
-    // /*
-    // [pa score node i, fit score node i]   *   [ pa weight]
-    // [fit score row vector]      [ fit weight]
-    // node i final score = pa score * pa weight + fit score * fit weight
-    Eigen::MatrixXd current_scores(candidate_nodes.size(), 2);
-    Eigen::Vector2d current_weights(pa_weight, fit_weight);
+    /* begin weighted random sampling results */
+    Eigen::MatrixXd current_scores(candidate_nodes.size(), 4);
+    Eigen::Vector4d current_weights(pa_weight, fit_weight, num_authors_weight, author_reputation_weight);
     double pa_sum = 0.0;
     double fit_sum = 0.0;
+    double na_sum = 0.0;
+    double ar_sum = 0.0;
     std::vector<double> raw_pa_arr;
     std::vector<double> raw_fit_arr;
+    std::vector<double> raw_na_arr;
+    std::vector<double> raw_ar_arr;
     raw_pa_arr.reserve(candidate_nodes.size());
     raw_fit_arr.reserve(candidate_nodes.size());
+    raw_na_arr.reserve(candidate_nodes.size());
+    raw_ar_arr.reserve(candidate_nodes.size());
     for(size_t i = 0; i < candidate_nodes.size(); i ++) {
         int continuous_node_id = continuous_node_mapping.at(candidate_nodes.at(i));
         double current_pa = pa_arr[continuous_node_id];
         double current_fit = fit_arr[continuous_node_id];
+        double current_na = na_arr[continuous_node_id];
+        double current_ar = ar_arr[continuous_node_id];
         pa_sum += current_pa;
         fit_sum += current_fit;
+        na_sum += current_na;
+        ar_sum += current_ar;
         raw_pa_arr.push_back(current_pa);
         raw_fit_arr.push_back(current_fit);
+        raw_na_arr.push_back(current_na);
+        raw_ar_arr.push_back(current_ar);
     }
     for(size_t i = 0; i < candidate_nodes.size(); i ++) {
         current_scores(i, 0) = raw_pa_arr[i] / pa_sum;
         current_scores(i, 1) = raw_fit_arr[i] / fit_sum;
+        current_scores(i, 2) = raw_na_arr[i] / na_sum;
+        current_scores(i, 3) = raw_ar_arr[i] / ar_sum;
     }
     Eigen::MatrixXd current_weighted_scores = current_scores * current_weights;
+    // double u = log(current_pa) + log(pa_weight);
+    // double v = log(current_rec) + log(rec_weight);
+    // double w = log(current_fit) + log(fit_weight);
+    // double max_value = std::max(u, std::max(v, w));
+    // current_scores[i] = max_value + log(exp(u - max_value) + exp(v - max_value) + exp(w - max_value));
+    // Eigen::ArrayXd current_weighted_scores(candidate_nodes.size());
+    // current_scores = current_scores.array().log();
+    // current_weights = current_weights.array().log();
+    // for(size_t i = 0; i < candidate_nodes.size(); i ++) {
+        // double u = log(current_scores(i, 0)) + log(current_weights(0));
+        // double v = log(current_scores(i, 1)) + log(current_weights(1));
+        // double u = current_scores(i, 0) + current_weights(0);
+        // double v = current_scores(i, 1) + current_weights(1);
+        // double max_value = std::max(u, v);
+        // current_weighted_scores(i) = max_value + log(exp(u - max_value) + exp(v - max_value));
+    // }
+
+
     auto current_wrs_uniform = [&] () {return wrs_uniform_distribution(generator);};
     Eigen::ArrayXd current_bases = Eigen::ArrayXd::NullaryExpr(candidate_nodes.size(), current_wrs_uniform);
-    Eigen::ArrayXd weighted_random_sampling_results = current_bases.pow(1.0 / current_weighted_scores.array());
+    // Eigen::ArrayXd weighted_random_sampling_results = current_bases.pow(1.0 / current_weighted_scores.array());
+    Eigen::ArrayXd weighted_random_sampling_results = current_bases.log() / current_weighted_scores.array();
+    /* end weighted random sampling results */
 
 
     for(size_t i = 0; i < candidate_nodes.size(); i ++) {
@@ -684,13 +723,13 @@ std::vector<int> ABM::GetEligibleGeneratorNodes(Graph* graph, int graph_size, co
     std::vector<std::pair<double, int>> in_degree_eligible_generator_nodes;
     std::vector<std::pair<double, int>> fitness_eligible_generator_nodes;
     std::vector<int> eligible_generator_nodes;
-    std::cerr << "current year is " << current_year << " for a simulation where first year agents have year " << start_year << std::endl;
+    // std::cerr << "current year is " << current_year << " for a simulation where first year agents have year " << start_year << std::endl;
     if (current_year - start_year <= recency_threshold) {
-        std::cerr << "starting eligible check by scanning the whole array" << std::endl;
+        // std::cerr << "starting eligible check by scanning the whole array" << std::endl;
         for(int i = graph_size - 1; i >= 0; i --) {
             int current_node_id = reverse_continuous_node_mapping.at(i);
             if ((current_year - graph->GetIntAttribute("year", current_node_id)) > recency_threshold) {
-                /* std::cerr << "these nodes are too old since they were born in year " << graph->GetIntAttribute("year", current_node_id) << ". breaking." << std::endl; */
+                // std::cerr << "node too old, born in year " << graph->GetIntAttribute("year", current_node_id) << std::endl;
             } else {
                 in_degree_eligible_generator_nodes.push_back({in_degree_arr[i], current_node_id});
                 if (graph->GetStringAttribute("type", current_node_id) == "seed") {
@@ -698,14 +737,15 @@ std::vector<int> ABM::GetEligibleGeneratorNodes(Graph* graph, int graph_size, co
                 } else {
                     fitness_eligible_generator_nodes.push_back({fitness_arr[i], current_node_id});
                 }
+                // std::cerr << "adding node" << std::endl;
             }
         }
     } else {
-        std::cerr << "starting eligible check by only scanning the past " << recency_threshold << " years from the back" << std::endl;
+        // std::cerr << "starting eligible check by only scanning the past " << recency_threshold << " years from the back" << std::endl;
         for(int i = graph_size - 1; i >= 0; i --) {
             int current_node_id = reverse_continuous_node_mapping.at(i);
             if ((current_year - graph->GetIntAttribute("year", current_node_id)) > recency_threshold) {
-                std::cerr << "these nodes are too old since they were born in year " << graph->GetIntAttribute("year", current_node_id) << ". breaking." << std::endl;
+                // std::cerr << "these nodes are too old since they were born in year " << graph->GetIntAttribute("year", current_node_id) << ". breaking." << std::endl;
                 break;
             }
             in_degree_eligible_generator_nodes.push_back({in_degree_arr[i], current_node_id});
@@ -715,9 +755,9 @@ std::vector<int> ABM::GetEligibleGeneratorNodes(Graph* graph, int graph_size, co
     int in_degree_top_n_nodes_index = (int)((in_degree_eligible_generator_nodes.size() - 1) * ((double)in_degree_threshold / 100));
     int fitness_top_n_nodes_index = (int)((fitness_eligible_generator_nodes.size() - 1) * ((double)fitness_threshold / 100));
 
-    std::cerr << "looking for top " << in_degree_threshold << " percentile in-degree and top " << fitness_threshold << " percentile fitness nodes" << " in the past " << recency_threshold << " years" << std::endl;
-    std::cerr << "there are " << in_degree_eligible_generator_nodes.size() << " nodes that fit by in-degree and we look for the top " << in_degree_top_n_nodes_index << " nodes" << std::endl;
-    std::cerr << "there are " << fitness_eligible_generator_nodes.size() << " nodes that fit by fitness and we look for the top " << fitness_top_n_nodes_index << " nodes" << std::endl;
+    // std::cerr << "looking for top " << in_degree_threshold << " percentile in-degree and top " << fitness_threshold << " percentile fitness nodes" << " in the past " << recency_threshold << " years" << std::endl;
+    // std::cerr << "there are " << in_degree_eligible_generator_nodes.size() << " nodes that fit by in-degree and we look for the top " << in_degree_top_n_nodes_index << " nodes" << std::endl;
+    // std::cerr << "there are " << fitness_eligible_generator_nodes.size() << " nodes that fit by fitness and we look for the top " << fitness_top_n_nodes_index << " nodes" << std::endl;
 
     /* std::partial_sort(in_degree_eligible_generator_nodes.begin(), in_degree_eligible_generator_nodes.begin() + in_degree_top_n_nodes_index, in_degree_eligible_generator_nodes.end(), [](auto& left, auto& right){ */
     /*     return left.first > right.first; // read */
@@ -730,11 +770,11 @@ std::vector<int> ABM::GetEligibleGeneratorNodes(Graph* graph, int graph_size, co
     std::nth_element(in_degree_eligible_generator_nodes.begin(), in_degree_eligible_generator_nodes.begin() + in_degree_top_n_nodes_index, in_degree_eligible_generator_nodes.end(), [](auto& left, auto& right){
         return left.first > right.first; // read
     });
-    std::cerr << "in-degree sorted" << std::endl;
+    // std::cerr << "in-degree sorted" << std::endl;
     std::nth_element(fitness_eligible_generator_nodes.begin(), fitness_eligible_generator_nodes.begin() + fitness_top_n_nodes_index, fitness_eligible_generator_nodes.end(), [](auto& left, auto& right){
         return left.first > right.first; // read
     });
-    std::cerr << "fitness sorted" << std::endl;
+    // std::cerr << "fitness sorted" << std::endl;
 
     /* if (in_degree_top_n_nodes_index < fitness_top_n_nodes_index) { */
     /*     std::set<int> eligible_fitness_node_ids; */
@@ -765,9 +805,9 @@ std::vector<int> ABM::GetEligibleGeneratorNodes(Graph* graph, int graph_size, co
     /* for (size_t i = 0; i < fitness_top_n_nodes_index; i ++) { */
     /*     eligible_fitness_node_ids.insert(fitness_eligible_generator_nodes.at(i).second); */
     /* } */
-    std::cerr << "We lookd for them and got " << eligible_in_degree_node_ids.size() << " in-degreee eligible node ids and " << eligible_fitness_node_ids.size() << " fitness eligible node ids" << std::endl;
+    // std::cerr << "We lookd for them and got " << eligible_in_degree_node_ids.size() << " in-degreee eligible node ids and " << eligible_fitness_node_ids.size() << " fitness eligible node ids" << std::endl;
     std::set_intersection(eligible_in_degree_node_ids.begin(), eligible_in_degree_node_ids.end(), eligible_fitness_node_ids.begin(), eligible_fitness_node_ids.end(), std::back_inserter(eligible_generator_nodes));
-    std::cerr << "there are " << eligible_generator_nodes.size() << " nodes in the intersection" << std::endl;
+    // std::cerr << "there are " << eligible_generator_nodes.size() << " nodes in the intersection" << std::endl;
     // only use in-degree if intersection 0?
     return eligible_generator_nodes;
 }
@@ -1275,6 +1315,22 @@ bool ABM::ValidateArguments() {
     } else {
         this->WriteToLogFile("fitness_weight: " + std::to_string(this->fitness_weight), Log::info);
     }
+    if (this->num_authors_weight == -42) {
+        this->WriteToLogFile("Required parameter 'num_authors_weight' was not found in the 'Agent' section", Log::error);
+        return false;
+    } else if (this->num_authors_weight == -1) {
+        this->WriteToLogFile("num_authors_weight: randomized", Log::info);
+    } else {
+        this->WriteToLogFile("num_authors_weight: " + std::to_string(this->num_authors_weight), Log::info);
+    }
+    if (this->author_reputation_weight == -42) {
+        this->WriteToLogFile("Required parameter 'author_reputation_weight' was not found in the 'Agent' section", Log::error);
+        return false;
+    } else if (this->author_reputation_weight == -1) {
+        this->WriteToLogFile("author_reputation_weight: randomized", Log::info);
+    } else {
+        this->WriteToLogFile("author_reputation_weight: " + std::to_string(this->author_reputation_weight), Log::info);
+    }
     if (!this->ValidateArgument("Agent", "fitness_value_min", this->fitness_value_min, -42)) {
         return false;
     }
@@ -1285,6 +1341,12 @@ bool ABM::ValidateArguments() {
         return false;
     }
     if (!this->ValidateArgument("Agent", "neighborhood_sample", this->neighborhood_sample, -42)) {
+        return false;
+    }
+    if (!this->ValidateArgument("Agent", "num_authors_bag", this->num_authors_bag, "")) {
+        return false;
+    }
+    if (!this->ValidateArgument("Agent", "author_max_lifetime", this->author_max_lifetime, -42)) {
         return false;
     }
     if (!this->ValidateArgument("Agent", "in_degree_threshold", this->in_degree_threshold, -42)) {
@@ -1347,7 +1409,7 @@ int ABM::main() {
     if (!this->ValidateBinBoundaries()) {
         return 1;
     }
-    Graph* graph = new Graph(this->edgelist, this->nodelist, this->start_from_checkpoint);
+    Graph* graph = new Graph(this->edgelist, this->nodelist, this->start_from_checkpoint, this->num_authors_bag, this->author_max_lifetime);
     this->WriteToLogFile("loaded graph", Log::info);
     /* node ids to continous integer from 0 */
     std::unordered_map<int, int> continuous_node_mapping = this->BuildContinuousNodeMapping(graph);
@@ -1365,25 +1427,31 @@ int ABM::main() {
     this->WriteToLogFile("final graph size is " + std::to_string(final_graph_size), Log::info);
     int* in_degree_arr = new int[final_graph_size]; // live updated in-degree array (changes every year)
     int* fitness_arr = new int[final_graph_size]; // live updated fitness array (changes every year)
+    int* num_authors_arr = new int[final_graph_size];
+    int* author_reputation_arr = new int[final_graph_size];
     double* pa_arr = new double[final_graph_size]; // exp of in-degree array
     double* fit_arr = new double[final_graph_size]; // exp of fitness array
+    double* na_arr = new double[final_graph_size]; // exp of num_authors_arr
+    double* ar_arr = new double[final_graph_size]; // exp of author_reputation_arr
     double* random_weight_arr = new double[final_graph_size];
     double* current_score_arr = new double[final_graph_size];
 
     // the first new agent node has index 0 but is actually index initial_graph_size in the continuous mapping
     double* pa_weight_arr = new double[final_graph_size - initial_graph_size];
     double* fit_weight_arr = new double[final_graph_size - initial_graph_size];
+    double* num_authors_weight_arr = new double[final_graph_size - initial_graph_size];
+    double* author_reputation_weight_arr = new double[final_graph_size - initial_graph_size];
     int* out_degree_arr = new int[final_graph_size - initial_graph_size];
     double* alpha_arr = new double[final_graph_size - initial_graph_size];
     int* fitness_lag_duration_arr = new int[final_graph_size - initial_graph_size];
     int* fitness_peak_value_arr = new int[final_graph_size - initial_graph_size];
     int* fitness_peak_duration_arr = new int[final_graph_size - initial_graph_size];
 
-    this->PopulateWeightArrs(pa_weight_arr, fit_weight_arr, final_graph_size - initial_graph_size);
+    this->PopulateWeightArrs(pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, final_graph_size - initial_graph_size);
     this->PopulateAlphaArr(alpha_arr, final_graph_size - initial_graph_size);
     this->PopulateOutDegreeArr(out_degree_arr, final_graph_size - initial_graph_size);
     this->PopulateFitnessArrs(fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, final_graph_size - initial_graph_size);
-    std::unordered_map<int, int> planted_nodes_line_number_map = this->PlantNodes(graph, pa_weight_arr, fit_weight_arr, out_degree_arr, alpha_arr, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr);
+    std::unordered_map<int, int> planted_nodes_line_number_map = this->PlantNodes(graph, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, out_degree_arr, alpha_arr, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr);
 
 
     std::vector<int> new_nodes_vec;
@@ -1406,10 +1474,18 @@ int ABM::main() {
         this->LogTime(current_year, "Fill in-degree array");
         this->FillFitnessArr(graph, continuous_node_mapping, current_year, fitness_arr);
         this->LogTime(current_year, "Fill fitness array");
+        this->FillNumAuthorsArr(graph, continuous_node_mapping, num_authors_arr);
+        this->LogTime(current_year, "Fill num authors array");
+        this->FillAuthorReputationArr(graph, continuous_node_mapping, author_reputation_arr);
+        this->LogTime(current_year, "Fill author reputation array");
         this->CalculateExpScores(exp_cached_results, in_degree_arr, pa_arr, current_graph_size);
         this->LogTime(current_year, "Process in-degree array");
         this->CalculateExpScores(exp_cached_results, fitness_arr, fit_arr, current_graph_size);
         this->LogTime(current_year, "Process fitness array");
+        this->CalculateExpScores(exp_cached_results, num_authors_arr, na_arr, current_graph_size);
+        this->LogTime(current_year, "Process num authors array");
+        this->CalculateExpScores(exp_cached_results, author_reputation_arr, ar_arr, current_graph_size);
+        this->LogTime(current_year, "Process author reputation array");
 
         /* initialize new nodes */
         int num_new_nodes = std::ceil(current_graph_size * this->growth_rate);
@@ -1426,6 +1502,7 @@ int ABM::main() {
         this->FillSameYearSourceNodes(same_year_source_nodes, new_nodes_vec.size());
         this->LogTime(current_year, "Pick same year nodes");
 
+
         std::vector<int> eligible_generator_nodes = this->GetEligibleGeneratorNodes(graph, current_graph_size, reverse_continuous_node_mapping, in_degree_arr, fitness_arr, this->in_degree_threshold, this->fitness_threshold, start_year, current_year, this->recency_threshold);
         for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
             int new_node = new_nodes_vec[i];
@@ -1437,6 +1514,9 @@ int ABM::main() {
                 std::vector<int> generator_nodes = this->GetGeneratorNodes(graph, reverse_continuous_node_mapping);
                 this->UpdateGraphAttributesGeneratorNodes(graph, new_node, generator_nodes);
             }
+            int author_id = graph->GetNextAuthor(current_year);
+            int num_authors = graph->GetNextNumAuthors();
+            this->UpdateGraphAttributesAuthors(graph, new_node, author_id, num_authors);
         }
         this->LogTime(current_year, "Pick generator nodes");
         std::vector<int> sampled_neighborhood_sizes_map(new_nodes_vec.size());
@@ -1458,6 +1538,8 @@ int ABM::main() {
             int weight_arr_index = continuous_node_mapping[new_node] - initial_graph_size;
             double pa_weight = pa_weight_arr[weight_arr_index];
             double fit_weight = fit_weight_arr[weight_arr_index];
+            double num_authors_weight = num_authors_weight_arr[weight_arr_index];
+            double author_reputation_weight = author_reputation_weight_arr[weight_arr_index];
             double alpha = alpha_arr[weight_arr_index];
             std::vector<int> generator_nodes = this->GetGraphAttributesGeneratorNodes(graph, new_node);
             int num_hops = 2;
@@ -1491,7 +1573,7 @@ int ABM::main() {
 
                 std::unordered_map<int, int> outdegree_per_bin_map = this->BinOutdegrees(binned_neighborhood, num_citations_per_neighborhood.at(current_neighborhood_index), binned_recency_probabilities);
                 for(int bin_index = 0; bin_index < this->num_bins - 1; bin_index ++) { // if there's only 1 bin then this is always false
-                    num_actually_cited += this->MakeCitations(graph, continuous_node_mapping, current_year, binned_neighborhood[bin_index], citations + num_actually_cited, pa_arr, fit_arr, pa_weight, fit_weight, current_graph_size, outdegree_per_bin_map[bin_index]);
+                    num_actually_cited += this->MakeCitations(graph, continuous_node_mapping, current_year, binned_neighborhood[bin_index], citations + num_actually_cited, pa_arr, fit_arr, na_arr, ar_arr, pa_weight, fit_weight, num_authors_weight, author_reputation_weight, current_graph_size, outdegree_per_bin_map[bin_index]);
                 }
                 num_actually_cited += this->MakeUniformRandomCitations(graph, continuous_node_mapping, current_year, binned_neighborhood[this->num_bins - 1], citations + num_actually_cited, current_graph_size, outdegree_per_bin_map[this->num_bins - 1]);
             }
@@ -1562,7 +1644,7 @@ int ABM::main() {
     this->WriteToLogFile("finished sim", Log::info);
     graph->WriteGraph(this->output_file);
 
-    this->UpdateGraphAttributesWeights(graph, initial_next_node_id, pa_weight_arr, fit_weight_arr, final_graph_size - initial_graph_size);
+    this->UpdateGraphAttributesWeights(graph, initial_next_node_id, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesOutDegrees(graph, initial_next_node_id, out_degree_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesAlphas(graph, initial_next_node_id, alpha_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesPlantedNodesLineNumbers(graph, initial_next_node_id, planted_nodes_line_number_map);
@@ -1576,10 +1658,16 @@ int ABM::main() {
     this->WriteToLogFile("wrote graph", Log::info);
     delete[] in_degree_arr;
     delete[] fitness_arr;
+    delete[] num_authors_arr;
+    delete[] author_reputation_arr;
     delete[] pa_arr;
     delete[] fit_arr;
+    delete[] na_arr;
+    delete[] ar_arr;
     delete[] pa_weight_arr;
     delete[] fit_weight_arr;
+    delete[] num_authors_weight_arr;
+    delete[] author_reputation_weight_arr;
     delete[] out_degree_arr;
     delete[] random_weight_arr;
     delete[] current_score_arr;

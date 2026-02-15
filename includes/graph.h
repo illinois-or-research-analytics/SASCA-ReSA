@@ -12,10 +12,13 @@
 #include <sstream>
 #include <queue>
 #include <iostream>
+#include <cmath>
+#include <random>
+#include "pcg_random.hpp"
 
 class Graph {
     public:
-        Graph(std::string edgelist, std::string nodelist, bool start_from_checkpoint);
+        Graph(std::string edgelist, std::string nodelist, bool start_from_checkpoint, std::string num_authors_bag, int author_max_lifetime);
         void AddEdge(std::pair<int, int> edge);
 
         static inline char GetDelimiter(std::string filepath) {
@@ -63,21 +66,35 @@ class Graph {
         void ParseEdgelist();
         int GetInDegree(int node) const;
         int GetOutDegree(int node) const;
+        int GetAuthorReputationForNode(int node) const;
         void AddNode(int u);
         void PrintGraph() const;
         void WriteGraph(std::string output_file) const;
         void WriteAttributes(std::string auxiliary_information_file) const;
+        int GetNextAuthor(int current_year);
+        int GetNextNumAuthors();
+        void ReadNumAuthorsBag();
+        int IsAuthorFunded(int author) const;
+        void UpdateAuthorPublicationMap(int author, int node);
 
     private:
-
         std::set<int> node_set;
         std::string edgelist;
         std::string nodelist;
         bool start_from_checkpoint;
+        std::string num_authors_bag;
+        int author_max_lifetime;
+        int IsNextAuthorFunded();
+        std::vector<int> num_authors_bag_vec;
 
     protected:
+        std::unordered_map<int, std::vector<int>> publication_count_to_author_map;
+        int next_author_id = 0;
+        int lotka_exponent = 2;
         std::unordered_map<int, std::vector<int>> forward_adj_map;
         std::unordered_map<int, std::vector<int>> backward_adj_map;
+        std::unordered_map<int, int> author_birth_year_map;
+        std::unordered_map<int, std::vector<int>> author_publication_map;
         std::unordered_map<std::string, std::unordered_map<int, int>> int_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, std::string>> string_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, double>> double_attribute_map;

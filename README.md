@@ -1,5 +1,8 @@
-# SASCA(-ReS): Scalable Agent-based Simulator for Citation Analysis (with Recency-emphasized Sampling)
+# SASCA(-ReSA): Scalable Agent-based Simulator for Citation Analysis (with Recency-emphasized Sampling and Author layer)
 SASCA, or Scalable Agent-based Simulator for Citation Analysis, as the name suggests, is a scalable agent-based modeling simulator that can begin with a small seed network and simulate an exponential network growth to reach sizes of 100 million nodes and more. Currently, SASCA is implemented in modern C++ and can be run across hundreds of cores.
+
+## Recent changelogs
+6.1.0: introduces author layer and log-based score calculation
 
 ## Dependencies
 - C++ >= 20
@@ -70,6 +73,8 @@ in_degree_threshold=<INT> ; used for non-random generator selection. Selects the
 fitness_threshold=<INT> ; used for non-random generator selection. Selects the top <INT> percentile nodes by fitness value
 recency_threshold=<INT> ; used for non-random generator selection. Selects only from the past <INT> years
 non_random_generator_probability=<DOUBLE> ; used for non-random generator selection. 0.9 for 90% of the nodes picking non-random generators
+author_max_lifetime=<INT> ; used for the maximum amount of years that an author is allowed to publish
+num_authors_bag=<FILE> ; used for sampling the number of authors per paper
 
 
 [General]
@@ -130,6 +135,8 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `fitness_threshold`: used for non-random generator selection. Selects the top percentile nodes by fitness value, meaning that the top nth percentile node is found by fitness, afterwhich all nodes with fitness value at least that value is selected.
 - `recency_threshold`: used for non-random generator selection. Selects only from the past n years e.g., if `recency_threshold=5` and current year is 1988, then 5 years of publications will be considered so the nodes with publication year at least 1983 and at most 1987.
 - `non_random_generator_probability`: Probability of each node to select a generator node in a non-random manner according to the different thresholds. Set to 0 for fully random and 1 for all non-random.
+- `author_max_lifetime`: used for the maximum amount of years that an author is allowed to publish. When this value is `k`, the difference between the publication year of the last paper and the publication year of the first paper of any given author cannot exceed `k`.
+- `num_authors_bag` ; used for sampling the number of authors per paper. This is a CSV wherelthe header line is ignored and each subsequent line is structed as (index,number of authors). The index column is not used, and the number of authors column is used to sample a number for the number of authors for each paper.
 
 
 #### General flags

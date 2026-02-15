@@ -24,7 +24,7 @@ enum Log {info, debug, error = -1};
 
 class ABM {
     public:
-        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, int fitness_value_min, int fitness_value_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
+        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
             // initial validation
             if (this->log_file == "") {
                 std::cerr << "Log file is required" << std::endl;
@@ -94,7 +94,9 @@ class ABM {
         void FillInDegreeArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* in_degree_arr);
         void InitializeFitness(Graph* graph);
         void FillFitnessArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, int* fitness_arr);
-        void PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, int len);
+        void FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr);
+        void FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr);
+        void PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len);
         void PopulateAlphaArr(double* alpha_arr, int len);
         void PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int len);
         int GetMaxYear(Graph* graph);
@@ -103,22 +105,25 @@ class ABM {
         void CalculateTanhScores(std::unordered_map<int, double>& cached_results, int* src_arr, double* dst_arr, int len);
         void CalculateExpScores(std::unordered_map<int, double>& cached_results, int* src_arr, double* dst_arr, int len);
         void SampleFromNeighborhoods(std::unordered_map<int, std::vector<int>>& one_and_two_hop_neighborhood_map, int neighborhood_size_threshold, int max_neighborhood_size);
-        int MakeCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, double* pa_arr, double* fit_arr, double pa_weight, double fit_weight, int current_graph_size, int num_citations);
+        int MakeCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size, int num_citations);
         int MakeUniformRandomCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, int current_graph_size, int num_citations);
         void FillSameYearSourceNodes(std::set<int>& same_year_source_nodes, int current_year_new_nodes);
         int MakeUniformRandomCitationsFromGraph(Graph* graph, const std::unordered_map<int, int>& reverse_continuous_node_mapping, std::vector<int>& generator_nodes, int* citations, int num_cited_so_far, int num_citations);
         int MakeSameYearCitations(const std::set<int>& same_year_source_nodes, int num_new_nodes, const std::unordered_map<int, int>& reverse_continuous_node_mapping, int* citations, int current_graph_size);
-        void UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* pa_weight_arr, double* fit_weight_arr, int len);
+        void UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len);
         void UpdateGraphAttributesOutDegrees(Graph* graph, int next_node_id, int* out_degree_arr, int len);
         void UpdateGraphAttributesGeneratorNodes(Graph* graph, int new_node, const std::vector<int>& generator_nodes);
+        void UpdateGraphAttributesAuthors(Graph* graph, int new_node, int author_id, int num_authors);
         void UpdateGraphAttributesAlphas(Graph* graph, int next_node_id, double* alpha_arr, int len);
         void UpdateGraphAttributesPlantedNodesLineNumbers(Graph* graph, int next_node_id, const std::unordered_map<int, int>& planted_nodes_line_number_map);
         void UpdateGraphAttributesFitnesses(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int initial_graph_size);
+
+
         void LogTime(int current_year, std::string label);
         void LogTime(int current_year, std::string label, int time_elapsed);
         std::chrono::time_point<std::chrono::steady_clock> LocalLogTime(std::vector<std::pair<std::string, int>>& local_parallel_stage_time_vec, std::chrono::time_point<std::chrono::steady_clock> local_prev_time, std::string label);
         void WriteTimingFile(int start_year, int end_year);
-        std::unordered_map<int, int> PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr);
+        std::unordered_map<int, int> PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr);
 
         void InitializeSeedFitness(Graph* graph) {
             for(auto const& node : graph->GetNodeSet()) {
@@ -228,6 +233,8 @@ class ABM {
         double fully_random_citations;
         double preferential_weight;
         double fitness_weight;
+        double num_authors_weight;
+        double author_reputation_weight;
         int fitness_value_min;
         int fitness_value_max;
         double minimum_preferential_weight;
@@ -240,6 +247,8 @@ class ABM {
         int num_cycles;
         double same_year_citations;
         int neighborhood_sample;
+        std::string num_authors_bag;
+        int author_max_lifetime;
         std::string output_file;
         std::string auxiliary_information_file;
         std::string log_file;
