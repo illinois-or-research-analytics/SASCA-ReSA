@@ -66,6 +66,7 @@ class Graph {
         void ParseEdgelist();
         int GetInDegree(int node) const;
         int GetOutDegree(int node) const;
+        void ComputeAuthorReputations();
         int GetAuthorReputationForNode(int node) const;
         void AddNode(int u);
         void PrintGraph() const;
@@ -95,6 +96,7 @@ class Graph {
         std::unordered_map<int, std::vector<int>> backward_adj_map;
         std::unordered_map<int, int> author_birth_year_map;
         std::unordered_map<int, std::vector<int>> author_publication_map;
+        std::unordered_map<int, int> author_reputation_map;
         std::unordered_map<std::string, std::unordered_map<int, int>> int_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, std::string>> string_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, double>> double_attribute_map;

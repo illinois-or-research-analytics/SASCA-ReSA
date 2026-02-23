@@ -131,25 +131,48 @@ void Graph::UpdateAuthorPublicationMap(int author, int node) {
     this->author_publication_map[author].push_back(node);
 }
 
+void Graph::ComputeAuthorReputations() {
+    for (const auto& [author_id, birth_year] : this->author_birth_year_map) {
+        const std::vector<int>& publication_vec = this->author_publication_map.at(author_id);
+        int h_index = 0;
+        if (!publication_vec.empty()) {
+            std::unordered_map<int, int> freq_map;
+            for(size_t i = 0; i < publication_vec.size(); i ++) {
+                int current_publication = publication_vec.at(i);
+                size_t current_publication_in_degree = this->GetInDegree(current_publication);
+                freq_map[std::min(publication_vec.size(), current_publication_in_degree)] ++;
+            }
+            h_index = publication_vec.size();
+            int num_candidate_papers = freq_map[h_index];
+            while(h_index > num_candidate_papers) {
+                h_index --;
+                num_candidate_papers += freq_map[h_index];
+            }
+        }
+        this->author_reputation_map[author_id] = h_index;
+    }
+}
+
 int Graph::GetAuthorReputationForNode(int node) const {
     int author_id = this->GetIntAttribute("author", node);
-    const std::vector<int>& publication_vec = this->author_publication_map.at(author_id);
-    if (publication_vec.empty()) {
-        return 0;
-    }
-    std::unordered_map<int, int> freq_map;
-    for(size_t i = 0; i < publication_vec.size(); i ++) {
-        int current_publication = publication_vec.at(i);
-        size_t current_publication_in_degree = this->GetInDegree(current_publication);
-        freq_map[std::min(publication_vec.size(), current_publication_in_degree)] ++;
-    }
-    int h_index = publication_vec.size();
-    int num_candidate_papers = freq_map[h_index];
-    while(h_index > num_candidate_papers) {
-        h_index --;
-        num_candidate_papers += freq_map[h_index];
-    }
-    return h_index;
+    return this->author_reputation_map.at(author_id);
+    // const std::vector<int>& publication_vec = this->author_publication_map.at(author_id);
+    // if (publication_vec.empty()) {
+    //     return 0;
+    // }
+    // std::unordered_map<int, int> freq_map;
+    // for(size_t i = 0; i < publication_vec.size(); i ++) {
+    //     int current_publication = publication_vec.at(i);
+    //     size_t current_publication_in_degree = this->GetInDegree(current_publication);
+    //     freq_map[std::min(publication_vec.size(), current_publication_in_degree)] ++;
+    // }
+    // int h_index = publication_vec.size();
+    // int num_candidate_papers = freq_map[h_index];
+    // while(h_index > num_candidate_papers) {
+    //     h_index --;
+    //     num_candidate_papers += freq_map[h_index];
+    // }
+    // return h_index;
 }
 
 int Graph::GetNextNumAuthors() {

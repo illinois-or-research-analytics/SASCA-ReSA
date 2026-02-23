@@ -169,17 +169,18 @@ void ABM::FillInDegreeArr(Graph* graph, const std::unordered_map<int, int>& cont
     }
 }
 
-void ABM::FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr) {
-    for(auto const& node: graph->GetNodeSet()) {
-        if (!continuous_node_mapping.contains(node)) {
-            std::cerr << std::to_string(node) << " not in continuous node mapping " << std::endl;
-        }
-        int continuous_id = continuous_node_mapping.at(node);
-        num_authors_arr[continuous_id] = graph->GetIntAttribute("num_authors", node);
-    }
-}
+// void ABM::FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr) {
+//     for(auto const& node: graph->GetNodeSet()) {
+//         if (!continuous_node_mapping.contains(node)) {
+//             std::cerr << std::to_string(node) << " not in continuous node mapping " << std::endl;
+//         }
+//         int continuous_id = continuous_node_mapping.at(node);
+//         num_authors_arr[continuous_id] = graph->GetNextNumAuthors();
+//     }
+// }
 
 void ABM::FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr) {
+    graph->ComputeAuthorReputations();
     for(auto const& node: graph->GetNodeSet()) {
         if (!continuous_node_mapping.contains(node)) {
             std::cerr << std::to_string(node) << " not in continuous node mapping " << std::endl;
@@ -195,7 +196,19 @@ void ABM::InitializeFitness(Graph* graph) {
     this->AssignFitnessPeakDuration(graph, graph->GetNodeSet());
 }
 
-std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr) {
+std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int* num_authors_arr) {
+    const std::unordered_map<std::string, std::pair<std::string, void*>> column_header_to_type_arr_map = {
+        {"pa_weight", {"double", (void*)pa_weight_arr}},
+        {"fit_weight", {"double", (void*)fit_weight_arr}},
+        {"num_authors_weight", {"double", (void*)num_authors_weight_arr}},
+        {"author_reputation_weight", {"double", (void*)author_reputation_weight_arr}},
+        {"out_degree", {"int", (void*)out_degree_arr}},
+        {"alpha", {"double", (void*)alpha_arr}},
+        {"fit_lag_duration", {"int", (void*)fitness_lag_duration_arr}},
+        {"fit_peak_value", {"int", (void*)fitness_peak_value_arr}},
+        {"fit_peak_duration", {"int", (void*)fitness_peak_duration_arr}},
+        {"num_authors", {"int", (void*)num_authors_arr}}
+    };
     std::unordered_map<int, int> planted_nodes_line_number_map;
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
@@ -209,51 +222,62 @@ std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr
             std::uniform_int_distribution<int> new_nodes_distribution{previous_graph_size, current_graph_size - 1};
             std::unordered_map<int, std::unordered_map<std::string, std::string>> current_year_map = this->planted_nodes_map.at(current_relative_year);
             for(auto const& [line_no, line_map] : current_year_map) {
-                int current_node_type_count = std::stoi(line_map.at("count"));
-                std::string current_fitness_lag_duration = line_map.at("fitness_lag_duration");
-                std::string current_fitness_peak_value = line_map.at("fitness_peak_value");
-                std::string current_fitness_peak_duration = line_map.at("fitness_peak_duration");
-                std::string current_preferential_attachment_weight = line_map.at("pa_weight");
-                std::string current_fitness_weight = line_map.at("fit_weight");
-                std::string current_num_authors_weight = line_map.at("num_authors_weight");
-                std::string current_author_reputation_weight = line_map.at("author_reputation_weight");
-                std::string current_alpha = line_map.at("alpha");
-                std::string current_out_degree = line_map.at("out_degree");
-                for(int i = 0; i < current_node_type_count; i ++) {
-                    int chosen_agent_index = new_nodes_distribution(generator);
-                    while(selected.contains(chosen_agent_index)) {
-                        chosen_agent_index = new_nodes_distribution(generator);
-                    }
-                    selected.insert(chosen_agent_index);
-                    if (current_fitness_lag_duration != "") {
-                        fitness_lag_duration_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_lag_duration);
-                    }
-                    if (current_fitness_peak_value != "") {
-                        fitness_peak_value_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_peak_value);
-                    }
-                    if (current_fitness_peak_duration != "") {
-                        fitness_peak_duration_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_peak_duration);
-                    }
-                    if (current_preferential_attachment_weight != "") {
-                        pa_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_preferential_attachment_weight);
-                    }
-                    if (current_fitness_weight != "") {
-                        fit_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_fitness_weight);
-                    }
-                    if (current_num_authors_weight != "") {
-                        num_authors_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_num_authors_weight);
-                    }
-                    if (current_author_reputation_weight != "") {
-                        author_reputation_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_author_reputation_weight);
-                    }
-                    if (current_out_degree != "") {
-                        out_degree_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_out_degree);
-                    }
-                    if (current_alpha != "") {
-                        alpha_arr[chosen_agent_index - initial_graph_size] = std::stod(current_alpha);
-                    }
-                    planted_nodes_line_number_map[chosen_agent_index - initial_graph_size] = line_no;
+                int chosen_agent_index = new_nodes_distribution(generator);
+                while(selected.contains(chosen_agent_index)) {
+                    chosen_agent_index = new_nodes_distribution(generator);
                 }
+                selected.insert(chosen_agent_index);
+                planted_nodes_line_number_map[chosen_agent_index - initial_graph_size] = line_no;
+                for(auto const& [planted_feature_name, planted_feature_value] : line_map) {
+                    std::string current_variable_type = column_header_to_type_arr_map.at(planted_feature_name).first;
+                    void* current_variable_arr = column_header_to_type_arr_map.at(planted_feature_name).second;
+                    if (current_variable_type == "double") {
+                        ((double*)current_variable_arr)[chosen_agent_index - initial_graph_size] = std::stod(planted_feature_value);
+                    } else if (current_variable_type == "int") {
+                        ((int*)current_variable_arr)[chosen_agent_index - initial_graph_size] = std::stoi(planted_feature_value);
+                    }
+                }
+                // std::string current_fitness_lag_duration = line_map.at("fitness_lag_duration");
+                // std::string current_fitness_peak_value = line_map.at("fitness_peak_value");
+                // std::string current_fitness_peak_duration = line_map.at("fitness_peak_duration");
+                // std::string current_preferential_attachment_weight = line_map.at("pa_weight");
+                // std::string current_fitness_weight = line_map.at("fit_weight");
+                // std::string current_num_authors_weight = line_map.at("num_authors_weight");
+                // std::string current_author_reputation_weight = line_map.at("author_reputation_weight");
+                // std::string current_alpha = line_map.at("alpha");
+                // std::string current_out_degree = line_map.at("out_degree");
+                // while(selected.contains(chosen_agent_index)) {
+                //     chosen_agent_index = new_nodes_distribution(generator);
+                // }
+                // selected.insert(chosen_agent_index);
+                // if (current_fitness_lag_duration != "") {
+                //     fitness_lag_duration_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_lag_duration);
+                // }
+                // if (current_fitness_peak_value != "") {
+                //     fitness_peak_value_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_peak_value);
+                // }
+                // if (current_fitness_peak_duration != "") {
+                //     fitness_peak_duration_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_fitness_peak_duration);
+                // }
+                // if (current_preferential_attachment_weight != "") {
+                //     pa_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_preferential_attachment_weight);
+                // }
+                // if (current_fitness_weight != "") {
+                //     fit_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_fitness_weight);
+                // }
+                // if (current_num_authors_weight != "") {
+                //     num_authors_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_num_authors_weight);
+                // }
+                // if (current_author_reputation_weight != "") {
+                //     author_reputation_weight_arr[chosen_agent_index - initial_graph_size] = std::stod(current_author_reputation_weight);
+                // }
+                // if (current_out_degree != "") {
+                //     out_degree_arr[chosen_agent_index - initial_graph_size] = std::stoi(current_out_degree);
+                // }
+                // if (current_alpha != "") {
+                //     alpha_arr[chosen_agent_index - initial_graph_size] = std::stod(current_alpha);
+                // }
+                // planted_nodes_line_number_map[chosen_agent_index - initial_graph_size] = line_no;
             }
         }
         previous_graph_size = current_graph_size;
@@ -364,6 +388,12 @@ void ABM::PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, doub
     }
 }
 
+void ABM::PopulateNumAuthorsArr(Graph* graph, int* num_authors_arr, int len) {
+    for(int i = 0; i < len; i ++) {
+        num_authors_arr[i] = graph->GetNextNumAuthors();
+    }
+}
+
 void ABM::PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int len) {
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
@@ -427,6 +457,13 @@ void ABM::UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* p
     }
 }
 
+void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr, int initial_graph_size) {
+    for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
+        int current_node_id = new_nodes_vec.at(i);
+        int current_weight_arr_index = continuous_node_mapping.at(current_node_id) - initial_graph_size;
+        graph->SetIntAttribute("num_authors", current_node_id, num_authors_arr[current_weight_arr_index]);
+    }
+}
 
 void ABM::UpdateGraphAttributesFitnesses(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int,int>& continuous_node_mapping, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int initial_graph_size) {
     for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
@@ -470,9 +507,9 @@ std::vector<int> ABM::GetGraphAttributesGeneratorNodes(Graph* graph, int new_nod
     return generator_nodes;
 }
 
-void ABM::UpdateGraphAttributesAuthors(Graph* graph, int new_node, int author_id, int num_authors) {
+void ABM::UpdateGraphAttributesAuthors(Graph* graph, int new_node, int author_id) {
         graph->SetIntAttribute("author", new_node, author_id);
-        graph->SetIntAttribute("num_authors", new_node, num_authors);
+        // graph->SetIntAttribute("num_authors", new_node, num_authors);
         graph->UpdateAuthorPublicationMap(author_id, new_node);
 }
 
@@ -1451,7 +1488,8 @@ int ABM::main() {
     this->PopulateAlphaArr(alpha_arr, final_graph_size - initial_graph_size);
     this->PopulateOutDegreeArr(out_degree_arr, final_graph_size - initial_graph_size);
     this->PopulateFitnessArrs(fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, final_graph_size - initial_graph_size);
-    std::unordered_map<int, int> planted_nodes_line_number_map = this->PlantNodes(graph, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, out_degree_arr, alpha_arr, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr);
+    this->PopulateNumAuthorsArr(graph, num_authors_arr, final_graph_size - initial_graph_size);
+    std::unordered_map<int, int> planted_nodes_line_number_map = this->PlantNodes(graph, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, out_degree_arr, alpha_arr, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, num_authors_arr);
 
 
     std::vector<int> new_nodes_vec;
@@ -1474,8 +1512,8 @@ int ABM::main() {
         this->LogTime(current_year, "Fill in-degree array");
         this->FillFitnessArr(graph, continuous_node_mapping, current_year, fitness_arr);
         this->LogTime(current_year, "Fill fitness array");
-        this->FillNumAuthorsArr(graph, continuous_node_mapping, num_authors_arr);
-        this->LogTime(current_year, "Fill num authors array");
+        // this->FillNumAuthorsArr(graph, continuous_node_mapping, num_authors_arr);
+        // this->LogTime(current_year, "Fill num authors array");
         this->FillAuthorReputationArr(graph, continuous_node_mapping, author_reputation_arr);
         this->LogTime(current_year, "Fill author reputation array");
         this->CalculateExpScores(exp_cached_results, in_degree_arr, pa_arr, current_graph_size);
@@ -1515,8 +1553,8 @@ int ABM::main() {
                 this->UpdateGraphAttributesGeneratorNodes(graph, new_node, generator_nodes);
             }
             int author_id = graph->GetNextAuthor(current_year);
-            int num_authors = graph->GetNextNumAuthors();
-            this->UpdateGraphAttributesAuthors(graph, new_node, author_id, num_authors);
+            // int num_authors = graph->GetNextNumAuthors();
+            this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
         }
         this->LogTime(current_year, "Pick generator nodes");
         std::vector<int> sampled_neighborhood_sizes_map(new_nodes_vec.size());
@@ -1635,6 +1673,7 @@ int ABM::main() {
 
         this->LogTime(current_year, "Update graph attributes (neighborhood sizes)");
         this->UpdateGraphAttributesFitnesses(graph, new_nodes_vec, continuous_node_mapping, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, initial_graph_size);
+        this->UpdateGraphAttributesNumAuthors(graph, new_nodes_vec, continuous_node_mapping, num_authors_arr, initial_graph_size);
         this->LogTime(current_year, "Assign fitness values to new nodes");
         new_nodes_vec.clear();
         new_edges_vec.clear();
@@ -1653,7 +1692,7 @@ int ABM::main() {
         graph->SetIntAttribute("in_degree", node_id, graph->GetInDegree(node_id));
         graph->SetIntAttribute("out_degree", node_id, graph->GetOutDegree(node_id));
     }
-
+    graph->ComputeAuthorReputations();
     graph->WriteAttributes(this->auxiliary_information_file);
     this->WriteToLogFile("wrote graph", Log::info);
     delete[] in_degree_arr;

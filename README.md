@@ -2,6 +2,7 @@
 SASCA, or Scalable Agent-based Simulator for Citation Analysis, as the name suggests, is a scalable agent-based modeling simulator that can begin with a small seed network and simulate an exponential network growth to reach sizes of 100 million nodes and more. Currently, SASCA is implemented in modern C++ and can be run across hundreds of cores.
 
 ## Recent changelogs
+6.2.0: introduces author layer with h-index as author reputation and updated planted nodes structure
 6.1.0: introduces author layer and log-based score calculation
 
 ## Dependencies
@@ -56,7 +57,7 @@ out_degree_bag=<FILE> ; csv derived from a real-world network
 growth_rate=<DOUBLE> ; floating point value e.g., 0.03 for 3%
 num_cycles=<INT> ; integer value e.g., 30 for a 30-year simulation
 recency_bins=<STRING> ; string with comma separated values for each bin
-planted_agents=<(optional) FILE> ; csv with planted agent in the format (year,fitness_lag_duration,fitness_peak_value,fitness_peak_duration,count) on each line
+planted_agents=<(optional) FILE> ; csv with planted agent with a planted agent per line.
 start_from_checkpoint=<BOOL> ; boolean value e.g., true or false for whether to start from a checkpoint or not
 
 [Agent]
@@ -118,7 +119,7 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `growth_rate`: floating point value, e.g., 0.03 for 3%, which serves as the exponent for the exponential growth formula used in determining how many new agents should spawn per cycle of simulation.
 - `num_cycles`: integer value e.g., 30 for a 30-year simulation
 - `recency_bins`: This string is a user supplied comma separated string such that each comma separated value in the string is the start of the bin boundary. For example, a string "1,2,5,10,20" represents a binning for recency such that the first bin contains all publications that are less than 2 year old, meaning 1 <= current year - publication year < 2. It follows that the second bin now are publications that are at least 2 years old but at most 4 years old (2 <= current year - publication year < 5). The last bin is implied to go on until infinity so in this example, the last bin contains all publications that are at least 20 years old (20 <= current\_year - publication year < infinity).
-- `planted_agents`: an optional csv file with planted agents. The required headers are (year,pa\_weight,fit\_weight,out\_degree,alpha,fitness\_lag\_duration,fitness\_peak\_value,fitness\_peak\_duration,count). Although the header line with all of the columns are required, only some values are required. For each line in the csv, values for year and count are required. Empty strings are interpreted as omittetd values. For these omitted values, the simulation default will be chosen. For example, in an experiment with random agents, a row string with "1,,,10,,,,,1" will be taken as planting a single agent in year 1 with out-degree 10. Preferential attachment weight, fitness weight, alpha, and fitness values will be whatever the simulation assigns this agent based on the input parameters. Note that each planted agent is chosen randomly from the given year and will override any assigned values. Planting too many agents will distort the distribution of affected values.
+- `planted_agents`: an optional csv file with planted agents. The only required column is the "year" column. The year column specifies the relative year, from the start of the simulation, when the node should be planted. 1 is the earliest relative year an agent can be planted. Any column header here must match the exact name in the output nodelist.
 - `start_from_checkpoint` boolean value e.g., true or false for whether to start from a checkpoint or not. Check notes about `nodelist` and `edgelist` if this flag is set to true.
 
 #### Agent flags
