@@ -5,7 +5,10 @@ Graph::Graph(std::string edgelist, std::string nodelist, bool start_from_checkpo
     this->ReadNumAuthorsBag();
     this->ParseEdgelist();
     this->ParseNodelist();
+    this->ComputeAuthorReputations();
+    this->SaveInitialAuthorReputations();
 }
+
 
 void Graph::ParseEdgelist() {
     char delimiter = Graph::GetDelimiter(this->edgelist);
@@ -78,8 +81,8 @@ void Graph::ParseNodelist() {
                 this->SetStringAttribute("generator_node_string", integer_node, generator_node_string);
                 int fully_random_citations = std::stoi(current_line[header_to_index_map["fully_random_citations"]]);
                 this->SetIntAttribute("fully_random_citations", integer_node, fully_random_citations);
-                int author = std::stoi(current_line[header_to_index_map["author"]]);
-                this->SetIntAttribute("author", integer_node, author);
+                int author = std::stoi(current_line[header_to_index_map["author_id"]]);
+                this->SetIntAttribute("author_id", integer_node, author);
                 int num_authors = std::stoi(current_line[header_to_index_map["num_authors"]]);
                 this->SetIntAttribute("num_authors", integer_node, num_authors);
                 this->author_birth_year_map[author] = integer_year;
@@ -121,7 +124,7 @@ void Graph::ParseNodelist() {
             int current_node_id = node_year_vec[i].first;
             int current_year = node_year_vec[i].second;
             int author_id = this->GetNextAuthor(current_year);
-            this->SetIntAttribute("author", current_node_id, author_id);
+            this->SetIntAttribute("author_id", current_node_id, author_id);
             this->UpdateAuthorPublicationMap(author_id, current_node_id);
         }
     }
@@ -153,8 +156,15 @@ void Graph::ComputeAuthorReputations() {
     }
 }
 
+void Graph::SaveInitialAuthorReputations() {
+    for(const auto& node_id : this->GetNodeSet()) {
+        int author_id = this->GetIntAttribute("author_id", node_id);
+        this->SetIntAttribute("initial_author_reputation", node_id, this->author_reputation_map.at(author_id));
+    }
+}
+
 int Graph::GetAuthorReputationForNode(int node) const {
-    int author_id = this->GetIntAttribute("author", node);
+    int author_id = this->GetIntAttribute("author_id", node);
     return this->author_reputation_map.at(author_id);
     // const std::vector<int>& publication_vec = this->author_publication_map.at(author_id);
     // if (publication_vec.empty()) {
@@ -340,7 +350,7 @@ void Graph::WriteGraph(std::string output_file) const {
 
 void Graph::WriteAttributes(std::string auxiliary_information_file) const {
     std::ofstream auxiliary_information_filehandle(auxiliary_information_file);
-    auxiliary_information_filehandle << "node_id,type,year,alpha,pa_weight,fit_weight,num_authors_weight,author_reputation_weight,fit_lag_duration,fit_peak_value,fit_peak_duration,in_degree,out_degree,assigned_out_degree,planted_nodes_line_number,generator_node_string,sampled_neighborhood_size,fully_random_citations,author,num_authors,author_reputation\n";
+    auxiliary_information_filehandle << "node_id,type,year,alpha,pa_weight,fit_weight,num_authors_weight,author_reputation_weight,fit_lag_duration,fit_peak_value,fit_peak_duration,in_degree,out_degree,assigned_out_degree,planted_nodes_line_number,generator_node_string,sampled_neighborhood_size,fully_random_citations,author_id,num_authors,initial_author_reputation,final_author_reputation\n";
     for(const auto& node_id : this->GetNodeSet()) {
         std::string node_type = this->GetStringAttribute("type", node_id);
         int year = this->GetIntAttribute("year", node_id);
@@ -355,13 +365,14 @@ void Graph::WriteAttributes(std::string auxiliary_information_file) const {
         int out_degree = this->GetIntAttribute("out_degree", node_id);
         int assigned_out_degree  = -1;
         int in_degree = this->GetIntAttribute("in_degree", node_id);
-        int author = this->GetIntAttribute("author", node_id);
+        int author = this->GetIntAttribute("author_id", node_id);
         int num_authors = this->GetIntAttribute("num_authors", node_id);
-        int author_reputation = this->GetAuthorReputationForNode(node_id);
         int planted_nodes_line_number = -1;
         std::string generator_node_string  = "no_generators";
         int neighborhood_size = -1;
         int fully_random_citations = -1;
+        int initial_author_reputation = this->GetIntAttribute("initial_author_reputation", node_id);
+        int final_author_reputation = this->GetAuthorReputationForNode(node_id);
         if(node_type != "seed") {
             alpha = this->GetDoubleAttribute("alpha", node_id);
             pa_weight = this->GetDoubleAttribute("pa_weight", node_id);
@@ -376,7 +387,7 @@ void Graph::WriteAttributes(std::string auxiliary_information_file) const {
             neighborhood_size = this->GetIntAttribute("sampled_neighborhood_size", node_id);
             fully_random_citations = this->GetIntAttribute("fully_random_citations", node_id);
         }
-        auxiliary_information_filehandle << node_id << "," << node_type << "," << year << "," << alpha << "," << pa_weight << "," << fit_weight << "," << num_authors_weight << "," << author_reputation_weight << "," << fit_lag_duration << "," << fit_peak_value << "," << fit_peak_duration << "," << in_degree << "," << out_degree << "," << assigned_out_degree << "," << planted_nodes_line_number << "," << generator_node_string << "," << neighborhood_size << "," << fully_random_citations << "," << author << "," << num_authors << "," << author_reputation << "\n";
+        auxiliary_information_filehandle << node_id << "," << node_type << "," << year << "," << alpha << "," << pa_weight << "," << fit_weight << "," << num_authors_weight << "," << author_reputation_weight << "," << fit_lag_duration << "," << fit_peak_value << "," << fit_peak_duration << "," << in_degree << "," << out_degree << "," << assigned_out_degree << "," << planted_nodes_line_number << "," << generator_node_string << "," << neighborhood_size << "," << fully_random_citations << "," << author << "," << num_authors << "," << initial_author_reputation << "," << final_author_reputation << "\n";
     }
     auxiliary_information_filehandle.close();
 }

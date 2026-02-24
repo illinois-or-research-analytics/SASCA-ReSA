@@ -56,6 +56,7 @@ class Graph {
         const std::unordered_map<int, std::vector<int>>& GetForwardAdjMap() const;
         const std::unordered_map<int, std::vector<int>>& GetBackwardAdjMap() const;
         void SetIntAttribute(std::string attribute_key, int node, int attribute_value);
+        void SaveInitialAuthorReputations();
         int GetIntAttribute(std::string attribute_key, int node) const;
         void SetStringAttribute(std::string attribute_key, int node, std::string attribute_value);
         std::string GetStringAttribute(std::string attribute_key, int node) const;

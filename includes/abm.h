@@ -96,6 +96,7 @@ class ABM {
         void FillFitnessArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, int* fitness_arr);
         // void FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr);
         void FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr);
+        void UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr, int initial_graph_size);
         void PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len);
         void PopulateAlphaArr(double* alpha_arr, int len);
         void PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int len);
@@ -118,7 +119,7 @@ class ABM {
         void UpdateGraphAttributesAlphas(Graph* graph, int next_node_id, double* alpha_arr, int len);
         void UpdateGraphAttributesPlantedNodesLineNumbers(Graph* graph, int next_node_id, const std::unordered_map<int, int>& planted_nodes_line_number_map);
         void UpdateGraphAttributesFitnesses(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int initial_graph_size);
-        void UpdateGraphAttributesNumAuthors(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr, int initial_graph_size);
+        void UpdateGraphAttributesNumAuthors(Graph* graph, int next_node_id, int* num_authors_arr, int len);
 
 
         void LogTime(int current_year, std::string label);

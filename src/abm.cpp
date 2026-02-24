@@ -457,11 +457,18 @@ void ABM::UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* p
     }
 }
 
-void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr, int initial_graph_size) {
+void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, int next_node_id, int* num_authors_arr, int len) {
+    for(int i = 0; i < len; i ++) {
+        int current_node_id = next_node_id + i;
+        graph->SetIntAttribute("num_authors", current_node_id, num_authors_arr[i]);
+    }
+}
+
+void ABM::UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr, int initial_graph_size) {
     for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
         int current_node_id = new_nodes_vec.at(i);
         int current_weight_arr_index = continuous_node_mapping.at(current_node_id) - initial_graph_size;
-        graph->SetIntAttribute("num_authors", current_node_id, num_authors_arr[current_weight_arr_index]);
+        graph->SetIntAttribute("initial_author_reputation", current_node_id, author_reputation_arr[current_weight_arr_index]);
     }
 }
 
@@ -508,7 +515,7 @@ std::vector<int> ABM::GetGraphAttributesGeneratorNodes(Graph* graph, int new_nod
 }
 
 void ABM::UpdateGraphAttributesAuthors(Graph* graph, int new_node, int author_id) {
-        graph->SetIntAttribute("author", new_node, author_id);
+        graph->SetIntAttribute("author_id", new_node, author_id);
         // graph->SetIntAttribute("num_authors", new_node, num_authors);
         graph->UpdateAuthorPublicationMap(author_id, new_node);
 }
@@ -1673,7 +1680,7 @@ int ABM::main() {
 
         this->LogTime(current_year, "Update graph attributes (neighborhood sizes)");
         this->UpdateGraphAttributesFitnesses(graph, new_nodes_vec, continuous_node_mapping, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, initial_graph_size);
-        this->UpdateGraphAttributesNumAuthors(graph, new_nodes_vec, continuous_node_mapping, num_authors_arr, initial_graph_size);
+        this->UpdateGraphAttributesInitialAuthorReputations(graph, new_nodes_vec, continuous_node_mapping, author_reputation_arr, initial_graph_size);
         this->LogTime(current_year, "Assign fitness values to new nodes");
         new_nodes_vec.clear();
         new_edges_vec.clear();
@@ -1686,6 +1693,7 @@ int ABM::main() {
     this->UpdateGraphAttributesWeights(graph, initial_next_node_id, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesOutDegrees(graph, initial_next_node_id, out_degree_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesAlphas(graph, initial_next_node_id, alpha_arr, final_graph_size - initial_graph_size);
+    this->UpdateGraphAttributesNumAuthors(graph, initial_next_node_id, num_authors_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesPlantedNodesLineNumbers(graph, initial_next_node_id, planted_nodes_line_number_map);
 
     for(auto const& node_id : graph->GetNodeSet()) {
