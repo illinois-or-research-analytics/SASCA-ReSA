@@ -197,6 +197,8 @@ void ABM::InitializeFitness(Graph* graph) {
 }
 
 std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int* num_authors_arr) {
+    int current_graph_size = graph->GetNodeSet().size();
+    int initial_graph_size = current_graph_size;
     const std::unordered_map<std::string, std::pair<std::string, void*>> column_header_to_type_arr_map = {
         {"pa_weight", {"double", (void*)pa_weight_arr}},
         {"fit_weight", {"double", (void*)fit_weight_arr}},
@@ -207,13 +209,11 @@ std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr
         {"fit_lag_duration", {"int", (void*)fitness_lag_duration_arr}},
         {"fit_peak_value", {"int", (void*)fitness_peak_value_arr}},
         {"fit_peak_duration", {"int", (void*)fitness_peak_duration_arr}},
-        {"num_authors", {"int", (void*)num_authors_arr}}
+        {"num_authors", {"int", (void*)(num_authors_arr + initial_graph_size)}}
     };
     std::unordered_map<int, int> planted_nodes_line_number_map;
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
-    int current_graph_size = graph->GetNodeSet().size();
-    int initial_graph_size = current_graph_size;
     int previous_graph_size = 0;
     for(int current_relative_year = 0; current_relative_year < this->num_cycles + 1; current_relative_year ++) {
         int num_new_nodes = std::ceil(current_graph_size * this->growth_rate);
@@ -289,18 +289,18 @@ std::unordered_map<int, int> ABM::PlantNodes(Graph* graph, double* pa_weight_arr
 void ABM::FillFitnessArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, int* fitness_arr) {
     for(auto const& node : graph->GetNodeSet()) {
         int fitness_peak_value = graph->GetIntAttribute("fitness_peak_value", node);
-        /* int fitness_lag_duration = graph->GetIntAttribute("fitness_lag_duration", node); */
-        /* int fitness_peak_duration = graph->GetIntAttribute("fitness_peak_duration", node); */
-        /* int published_year = graph->GetIntAttribute("year", node); */
+        int fitness_lag_duration = graph->GetIntAttribute("fitness_lag_duration", node);
+        int fitness_peak_duration = graph->GetIntAttribute("fitness_peak_duration", node);
+        int published_year = graph->GetIntAttribute("year", node);
         int continuous_index = continuous_node_mapping.at(node);
-        /* if (published_year + fitness_lag_duration > current_year) { */
-        /*     fitness_arr[continuous_index] = 1; */
-        /* } else if (published_year + fitness_lag_duration + fitness_peak_duration >= current_year) { */
-        fitness_arr[continuous_index] = fitness_peak_value;
-        /* } else { */
-        /*     double decayed_fitness_value = fitness_peak_value / pow(current_year - published_year - fitness_lag_duration - fitness_peak_duration + 1, this->fitness_decay_alpha); */
-        /*     fitness_arr[continuous_index] = decayed_fitness_value; */
-        /* } */
+        if (published_year + fitness_lag_duration > current_year) {
+            fitness_arr[continuous_index] = 1;
+        } else if (published_year + fitness_lag_duration + fitness_peak_duration >= current_year) {
+            fitness_arr[continuous_index] = fitness_peak_value;
+        } else {
+            double decayed_fitness_value = fitness_peak_value / pow(current_year - published_year - fitness_lag_duration - fitness_peak_duration + 1, this->fitness_decay_alpha);
+            fitness_arr[continuous_index] = decayed_fitness_value;
+        }
     }
 }
 
@@ -398,7 +398,7 @@ void ABM::PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_v
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
     for(int i = 0; i < len; i ++) {
-        fitness_lag_duration_arr[i] = 0;
+        fitness_lag_duration_arr[i] = this->fitness_lag_duration_uniform_distribution(generator);
         double fitness_uniform = this->fitness_value_uniform_distribution(generator);
         double adjusted_alpha = this->fitness_alpha + 1;
         double base_left = (pow(this->fitness_value_max, adjusted_alpha) - pow(this->fitness_value_min, adjusted_alpha)) * fitness_uniform;
@@ -406,7 +406,7 @@ void ABM::PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_v
         double exponent = 1.0/adjusted_alpha;
         int fitness_power = pow(base_left + base_right ,exponent);
         fitness_peak_value_arr[i] = fitness_power;
-        fitness_peak_duration_arr[i] = 1000;
+        fitness_peak_duration_arr[i] = this->fitness_peak_duration_uniform_distribution(generator);
     }
 }
 
@@ -457,10 +457,10 @@ void ABM::UpdateGraphAttributesWeights(Graph* graph, int next_node_id, double* p
     }
 }
 
-void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, int next_node_id, int* num_authors_arr, int len) {
-    for(int i = 0; i < len; i ++) {
-        int current_node_id = next_node_id + i;
-        graph->SetIntAttribute("num_authors", current_node_id, num_authors_arr[i]);
+void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr) {
+    for(auto const& node_id : graph->GetNodeSet()) {
+        int continuous_id = continuous_node_mapping.at(node_id);
+        graph->SetIntAttribute("num_authors", node_id, num_authors_arr[continuous_id]);
     }
 }
 
@@ -1381,6 +1381,18 @@ bool ABM::ValidateArguments() {
     if (!this->ValidateArgument("Agent", "fitness_value_max", this->fitness_value_max, -42)) {
         return false;
     }
+    if (!this->ValidateArgument("Agent", "fitness_lag_duration_min", this->fitness_lag_duration_min, -42)) {
+        return false;
+    }
+    if (!this->ValidateArgument("Agent", "fitness_lag_duration_max", this->fitness_lag_duration_max, -42)) {
+        return false;
+    }
+    if (!this->ValidateArgument("Agent", "fitness_peak_duration_min", this->fitness_peak_duration_min, -42)) {
+        return false;
+    }
+    if (!this->ValidateArgument("Agent", "fitness_peak_duration_max", this->fitness_peak_duration_max, -42)) {
+        return false;
+    }
     if (!this->ValidateArgument("Agent", "same_year_citations", this->same_year_citations, -42)) {
         return false;
     }
@@ -1454,6 +1466,7 @@ int ABM::main() {
         return 1;
     }
     Graph* graph = new Graph(this->edgelist, this->nodelist, this->start_from_checkpoint, this->num_authors_bag, this->author_max_lifetime);
+    this->InitializeSeedFitness(graph);
     this->WriteToLogFile("loaded graph", Log::info);
     /* node ids to continous integer from 0 */
     std::unordered_map<int, int> continuous_node_mapping = this->BuildContinuousNodeMapping(graph);
@@ -1495,7 +1508,7 @@ int ABM::main() {
     this->PopulateAlphaArr(alpha_arr, final_graph_size - initial_graph_size);
     this->PopulateOutDegreeArr(out_degree_arr, final_graph_size - initial_graph_size);
     this->PopulateFitnessArrs(fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, final_graph_size - initial_graph_size);
-    this->PopulateNumAuthorsArr(graph, num_authors_arr, final_graph_size - initial_graph_size);
+    this->PopulateNumAuthorsArr(graph, num_authors_arr, final_graph_size);
     std::unordered_map<int, int> planted_nodes_line_number_map = this->PlantNodes(graph, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, out_degree_arr, alpha_arr, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, num_authors_arr);
 
 
@@ -1693,7 +1706,7 @@ int ABM::main() {
     this->UpdateGraphAttributesWeights(graph, initial_next_node_id, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesOutDegrees(graph, initial_next_node_id, out_degree_arr, final_graph_size - initial_graph_size);
     this->UpdateGraphAttributesAlphas(graph, initial_next_node_id, alpha_arr, final_graph_size - initial_graph_size);
-    this->UpdateGraphAttributesNumAuthors(graph, initial_next_node_id, num_authors_arr, final_graph_size - initial_graph_size);
+    this->UpdateGraphAttributesNumAuthors(graph, continuous_node_mapping, num_authors_arr);
     this->UpdateGraphAttributesPlantedNodesLineNumbers(graph, initial_next_node_id, planted_nodes_line_number_map);
 
     for(auto const& node_id : graph->GetNodeSet()) {

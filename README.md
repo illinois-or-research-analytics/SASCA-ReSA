@@ -2,6 +2,7 @@
 SASCA, or Scalable Agent-based Simulator for Citation Analysis, as the name suggests, is a scalable agent-based modeling simulator that can begin with a small seed network and simulate an exponential network growth to reach sizes of 100 million nodes and more. Currently, SASCA is implemented in modern C++ and can be run across hundreds of cores.
 
 ## Recent changelogs
+6.2.2: Fixes a bug with number of authors and planted nodes feature where number of authors was not having an effect
 6.2.1: functionality did not change but the output nodelist now has initial author reputation and final author reputation
 6.2.0: introduces author layer with h-index as author reputation and updated planted nodes structure
 6.1.0: introduces author layer and log-based score calculation

@@ -94,12 +94,12 @@ void Graph::ParseNodelist() {
                 // int author_id = this->GetNextAuthor();
                 // int num_authors = this->GetNextNumAuthors();
                 // std::cerr << "author id  " << author_id << " with count " << num_authors << std::endl;
-                int num_authors = this->GetNextNumAuthors();
+                // int num_authors = this->GetNextNumAuthors();
                 this->SetStringAttribute("type", integer_node, "seed");
                 this->SetIntAttribute("fitness_lag_duration", integer_node, fitness_lag_uniform);
                 this->SetIntAttribute("fitness_peak_duration", integer_node, fitness_peak_uniform);
                 this->SetIntAttribute("fitness_peak_value", integer_node, fitness_power);
-                this->SetIntAttribute("num_authors", integer_node, num_authors);
+                // this->SetIntAttribute("num_authors", integer_node, num_authors);
                 // this->SetIntAttribute("author", integer_node, author_id);
                 // this->SetIntAttribute("num_authors", integer_node, num_authors);
             }

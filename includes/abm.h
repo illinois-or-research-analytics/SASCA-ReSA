@@ -24,7 +24,7 @@ enum Log {info, debug, error = -1};
 
 class ABM {
     public:
-        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
+        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, int fitness_lag_duration_min, int fitness_lag_duration_max, int fitness_peak_duration_min, int fitness_peak_duration_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), fitness_lag_duration_min(fitness_lag_duration_min), fitness_lag_duration_max(fitness_lag_duration_max), fitness_peak_duration_min(fitness_peak_duration_min), fitness_peak_duration_max(fitness_peak_duration_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
             // initial validation
             if (this->log_file == "") {
                 std::cerr << "Log file is required" << std::endl;
@@ -119,7 +119,7 @@ class ABM {
         void UpdateGraphAttributesAlphas(Graph* graph, int next_node_id, double* alpha_arr, int len);
         void UpdateGraphAttributesPlantedNodesLineNumbers(Graph* graph, int next_node_id, const std::unordered_map<int, int>& planted_nodes_line_number_map);
         void UpdateGraphAttributesFitnesses(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int initial_graph_size);
-        void UpdateGraphAttributesNumAuthors(Graph* graph, int next_node_id, int* num_authors_arr, int len);
+        void UpdateGraphAttributesNumAuthors(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr);
 
 
         void LogTime(int current_year, std::string label);
@@ -163,8 +163,8 @@ class ABM {
                 /* std::minstd_rand generator{rand_dev()}; */
                 pcg_extras::seed_seq_from<std::random_device> rand_dev;
                 pcg32 generator(rand_dev);
-                /* int fitness_lag_uniform = this->fitness_lag_duration_uniform_distribution(generator); */
-                int fitness_lag_uniform = 0; // MARK: hard coded to be static fitness
+                int fitness_lag_uniform = this->fitness_lag_duration_uniform_distribution(generator);
+                // int fitness_lag_uniform = 0; // MARK: hard coded to be static fitness
                 graph->SetIntAttribute("fitness_lag_duration", node, fitness_lag_uniform);
             }
         }
@@ -176,8 +176,8 @@ class ABM {
                 /* std::minstd_rand generator{rand_dev()}; */
                 pcg_extras::seed_seq_from<std::random_device> rand_dev;
                 pcg32 generator(rand_dev);
-                /* int fitness_peak_uniform = this->fitness_peak_duration_uniform_distribution(generator); */
-                int fitness_peak_uniform = 1000; // MARK: hard coded to be static fitness
+                int fitness_peak_uniform = this->fitness_peak_duration_uniform_distribution(generator);
+                // int fitness_peak_uniform = 1000; // MARK: hard coded to be static fitness
                 graph->SetIntAttribute("fitness_peak_duration", node, fitness_peak_uniform);
             }
         }
@@ -240,6 +240,10 @@ class ABM {
         double author_reputation_weight;
         int fitness_value_min;
         int fitness_value_max;
+        int fitness_lag_duration_min;
+        int fitness_lag_duration_max;
+        int fitness_peak_duration_min;
+        int fitness_peak_duration_max;
         double minimum_preferential_weight;
         double minimum_fitness_weight;
         int in_degree_threshold;
@@ -261,10 +265,6 @@ class ABM {
         std::ofstream log_file_handle;
         std::ofstream timing_file_handle;
         int num_calls_to_log_write;
-        const int fitness_lag_duration_min = 1;
-        const int fitness_lag_duration_max = 7;
-        const int fitness_peak_duration_min = 1;
-        const int fitness_peak_duration_max = 7;
         const int fitness_alpha = -3;
         const int fitness_decay_alpha = 3;
         const int gamma = 3;
