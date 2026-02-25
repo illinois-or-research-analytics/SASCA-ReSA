@@ -5,8 +5,8 @@ Graph::Graph(std::string edgelist, std::string nodelist, bool start_from_checkpo
     this->ReadNumAuthorsBag();
     this->ParseEdgelist();
     this->ParseNodelist();
-    this->ComputeAuthorReputations();
-    this->SaveInitialAuthorReputations();
+    // this->ComputeAuthorReputations();
+    // this->SaveInitialAuthorReputations();
 }
 
 
@@ -83,6 +83,8 @@ void Graph::ParseNodelist() {
                 this->SetIntAttribute("fully_random_citations", integer_node, fully_random_citations);
                 int author = std::stoi(current_line[header_to_index_map["author_id"]]);
                 this->SetIntAttribute("author_id", integer_node, author);
+                int initial_author_reputation = std::stoi(current_line[header_to_index_map["initial_author_reputation"]]);
+                this->SetIntAttribute("initial_author_reputation", integer_node, initial_author_reputation);
                 int num_authors = std::stoi(current_line[header_to_index_map["num_authors"]]);
                 this->SetIntAttribute("num_authors", integer_node, num_authors);
                 this->author_birth_year_map[author] = integer_year;
@@ -120,12 +122,32 @@ void Graph::ParseNodelist() {
         std::sort(node_year_vec.begin(), node_year_vec.end(), [](const std::pair<int, int>& left, const std::pair<int, int>& right) {
             return left.second < right.second;
         });
+        size_t previous_index = 0;
+        int previous_year = node_year_vec.at(previous_index).second;
         for(size_t i = 0; i < node_year_vec.size(); i ++) {
             int current_node_id = node_year_vec[i].first;
             int current_year = node_year_vec[i].second;
             int author_id = this->GetNextAuthor(current_year);
             this->SetIntAttribute("author_id", current_node_id, author_id);
             this->UpdateAuthorPublicationMap(author_id, current_node_id);
+            if (previous_year != current_year) {
+                this->ComputeAuthorReputations();
+                for(size_t j = previous_index; j < i; j ++) {
+                    int node_id = node_year_vec.at(j).first;
+                    int author_id = this->GetIntAttribute("author_id", node_id);
+                    this->SetIntAttribute("initial_author_reputation", node_id, this->author_reputation_map.at(author_id));
+                }
+                previous_index = i;
+                previous_year = node_year_vec.at(previous_index).second;
+            }
+        }
+        if (previous_index != node_year_vec.size() - 1) {
+            this->ComputeAuthorReputations();
+            for(size_t j = previous_index; j < node_year_vec.size(); j ++) {
+                int node_id = node_year_vec.at(j).first;
+                int author_id = this->GetIntAttribute("author_id", node_id);
+                this->SetIntAttribute("initial_author_reputation", node_id, this->author_reputation_map.at(author_id));
+            }
         }
     }
 }

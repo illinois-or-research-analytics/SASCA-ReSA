@@ -18,7 +18,7 @@ else()
 
     set(ABM_MAJOR_VERSION 6)
     set(ABM_MINOR_VERSION 2)
-    set(ABM_PATCH_VERSION 2)
+    set(ABM_PATCH_VERSION 3)
     set(ABM_VERSION
         ${ABM_MAJOR_VERSION}.
         ${ABM_MINOR_VERSION}.
@@ -31,7 +31,7 @@ else()
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clangd lsp
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=native -funroll-loops -fomit-frame-pointer")
-    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -ggdb -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
     # set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -ggdb -fno-omit-frame-pointer")
     # File paths
     set(SOURCE_MAIN ${CMAKE_SOURCE_DIR}/src/main.cpp)

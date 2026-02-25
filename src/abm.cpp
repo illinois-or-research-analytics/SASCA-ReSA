@@ -464,11 +464,16 @@ void ABM::UpdateGraphAttributesNumAuthors(Graph* graph, const std::unordered_map
     }
 }
 
-void ABM::UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr, int initial_graph_size) {
+void ABM::UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec) {
     for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
         int current_node_id = new_nodes_vec.at(i);
-        int current_weight_arr_index = continuous_node_mapping.at(current_node_id) - initial_graph_size;
-        graph->SetIntAttribute("initial_author_reputation", current_node_id, author_reputation_arr[current_weight_arr_index]);
+        // int current_weight_arr_index = continuous_node_mapping.at(current_node_id) - initial_graph_size;
+        // int continuous_id = continuous_node_mapping.at(current_node_id);
+        // if (author_reputation_arr[continuous_id] > 10000 || author_reputation_arr[continuous_id] < 0) {
+        //     std::cerr << "author reputation for node " << current_node_id << std::endl;
+        // }
+        int current_author_reputation = graph->GetAuthorReputationForNode(current_node_id);
+        graph->SetIntAttribute("initial_author_reputation", current_node_id, current_author_reputation);
     }
 }
 
@@ -1534,16 +1539,12 @@ int ABM::main() {
         this->LogTime(current_year, "Fill fitness array");
         // this->FillNumAuthorsArr(graph, continuous_node_mapping, num_authors_arr);
         // this->LogTime(current_year, "Fill num authors array");
-        this->FillAuthorReputationArr(graph, continuous_node_mapping, author_reputation_arr);
-        this->LogTime(current_year, "Fill author reputation array");
         this->CalculateExpScores(exp_cached_results, in_degree_arr, pa_arr, current_graph_size);
         this->LogTime(current_year, "Process in-degree array");
         this->CalculateExpScores(exp_cached_results, fitness_arr, fit_arr, current_graph_size);
         this->LogTime(current_year, "Process fitness array");
         this->CalculateExpScores(exp_cached_results, num_authors_arr, na_arr, current_graph_size);
         this->LogTime(current_year, "Process num authors array");
-        this->CalculateExpScores(exp_cached_results, author_reputation_arr, ar_arr, current_graph_size);
-        this->LogTime(current_year, "Process author reputation array");
 
         /* initialize new nodes */
         int num_new_nodes = std::ceil(current_graph_size * this->growth_rate);
@@ -1577,6 +1578,12 @@ int ABM::main() {
             this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
         }
         this->LogTime(current_year, "Pick generator nodes");
+
+        this->FillAuthorReputationArr(graph, continuous_node_mapping, author_reputation_arr);
+        this->LogTime(current_year, "Fill author reputation array");
+        this->CalculateExpScores(exp_cached_results, author_reputation_arr, ar_arr, current_graph_size);
+        this->LogTime(current_year, "Process author reputation array");
+
         std::vector<int> sampled_neighborhood_sizes_map(new_nodes_vec.size());
         std::vector<int> fully_random_citations_map(new_nodes_vec.size());
         std::vector<std::vector<int>> sampled_binned_neighborhood_sizes_map(new_nodes_vec.size());
@@ -1693,8 +1700,9 @@ int ABM::main() {
 
         this->LogTime(current_year, "Update graph attributes (neighborhood sizes)");
         this->UpdateGraphAttributesFitnesses(graph, new_nodes_vec, continuous_node_mapping, fitness_lag_duration_arr, fitness_peak_value_arr, fitness_peak_duration_arr, initial_graph_size);
-        this->UpdateGraphAttributesInitialAuthorReputations(graph, new_nodes_vec, continuous_node_mapping, author_reputation_arr, initial_graph_size);
         this->LogTime(current_year, "Assign fitness values to new nodes");
+        graph->ComputeAuthorReputations();
+        this->UpdateGraphAttributesInitialAuthorReputations(graph, new_nodes_vec);
         new_nodes_vec.clear();
         new_edges_vec.clear();
         same_year_source_nodes.clear();
