@@ -351,7 +351,7 @@ void Graph::PrintGraph() const {
     for(auto const& [u,u_neighbors] : this->GetForwardAdjMap()) {
         for(const int& v : u_neighbors) {
             /* if (u < v) { */
-            std::cout << u << "-" << v << std::endl;
+            std::cout << u << "-" << v << "\n";
             /* } */
         }
     }
@@ -359,11 +359,11 @@ void Graph::PrintGraph() const {
 
 void Graph::WriteGraph(std::string output_file) const {
     std::ofstream output_filehandle(output_file);
-    output_filehandle << "source,target" << std::endl;
+    output_filehandle << "source,target\n";
     for(auto const& [u,u_neighbors] : this->GetForwardAdjMap()) {
         for(const int& v : u_neighbors) {
             /* if (u < v) { */
-            output_filehandle << u << "," << v << std::endl;
+            output_filehandle << u << "," << v << "\n";
             /* } */
         }
     }

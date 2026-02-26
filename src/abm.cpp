@@ -1710,20 +1710,28 @@ int ABM::main() {
 
     this->WriteToLogFile("finished sim", Log::info);
     graph->WriteGraph(this->output_file);
+    this->WriteToLogFile("wrote graph", Log::info);
 
     this->UpdateGraphAttributesWeights(graph, initial_next_node_id, pa_weight_arr, fit_weight_arr, num_authors_weight_arr, author_reputation_weight_arr, final_graph_size - initial_graph_size);
+    this->WriteToLogFile("updated weights", Log::info);
     this->UpdateGraphAttributesOutDegrees(graph, initial_next_node_id, out_degree_arr, final_graph_size - initial_graph_size);
+    this->WriteToLogFile("updated out-degrees", Log::info);
     this->UpdateGraphAttributesAlphas(graph, initial_next_node_id, alpha_arr, final_graph_size - initial_graph_size);
+    this->WriteToLogFile("updated alphas", Log::info);
     this->UpdateGraphAttributesNumAuthors(graph, continuous_node_mapping, num_authors_arr);
+    this->WriteToLogFile("updated num authors", Log::info);
     this->UpdateGraphAttributesPlantedNodesLineNumbers(graph, initial_next_node_id, planted_nodes_line_number_map);
+    this->WriteToLogFile("updated planted nodes line numbers", Log::info);
 
     for(auto const& node_id : graph->GetNodeSet()) {
         graph->SetIntAttribute("in_degree", node_id, graph->GetInDegree(node_id));
         graph->SetIntAttribute("out_degree", node_id, graph->GetOutDegree(node_id));
     }
+    this->WriteToLogFile("computed in-degree and out-degrees", Log::info);
     graph->ComputeAuthorReputations();
+    this->WriteToLogFile("computed author reputations", Log::info);
     graph->WriteAttributes(this->auxiliary_information_file);
-    this->WriteToLogFile("wrote graph", Log::info);
+    this->WriteToLogFile("wrote nodelist", Log::info);
     delete[] in_degree_arr;
     delete[] fitness_arr;
     delete[] num_authors_arr;
