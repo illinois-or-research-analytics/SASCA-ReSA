@@ -71,6 +71,10 @@ preferential_weight=<DOUBLE> ; floating point value e.g., 0.33
 fitness_weight=<DOUBLE> ; floating point value e.g., 0.33
 fitness_value_min=<INT> ; minimum fitness value (inclusive)
 fitness_value_max=<INT> ; maximum fitness value (inclusive)
+fitness_lag_duration_min=<INT> ; minimum lag duration in years (inclusive)
+fitness_lag_duration_max=<INT> ; maximum lag duration in years (inclusive)
+fitness_peak_duration_min=<INT> ; minimum peak duration in years (inclusive)
+fitness_peak_duration_max=<INT> ; maximum peak duration in years (inclusive)
 neighborhood_sample=<INT> ; maximum number of nodes to sample from each neighborhood
 in_degree_threshold=<INT> ; used for non-random generator selection. Selects the top <INT> percentile nodes by in-degree value
 fitness_threshold=<INT> ; used for non-random generator selection. Selects the top <INT> percentile nodes by fitness value
@@ -133,6 +137,10 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `fitness_weight`: floating point value e.g., 0.33. This value can be left -1 for agents with random weights or a constant value for static agents.
 - `fitness_value_min`: minimum possible integer fitness value for each agent.
 - `fitness_value_max`: maximum possible integer fitness value for each agent.
+- `fitness_lag_duration_min`: minimum lag duration in years (inclusive). The fitness decay model in SASCA-ReSA works as follows. For the first `x` number of years, an agent is dormant and has the lowest possible fitness value. Afterwards, the agent immediately gains its full fitness value and retains it for `y` number of years. Finally, the fitness power for the agent decays according to a decaying power-law curve. `x` and `y` here are drawn from uniform distributions built by the lag duration min/max values and peak duration min/max values, respectively.
+- `fitness_lag_duration_max`: maximum lag duration in years (inclusive). See `fitness_lag_duration_min`.
+- `fitness_peak_duration_min`: minimum peak duration in years (inclusive).See `fitness_lag_duration_min`.
+- `fitness_peak_duration_max`: maximum peak duration in years (inclusive). See `fitness_lag_duration_min`.
 - `neighborhood_sample`: maximum number of nodes to sample from each neighborhood. The neighborhoods of the genartor will be sampled such that the final list of nodes is at most this number.
 - `in_degree_threshold`: used for non-random generator selection. Selects the top percentile nodes by in-degree value, meaning that the top nth percentile node is found by in-degree, afterwhich all nodes with in-degree value at least that value is selected.
 - `fitness_threshold`: used for non-random generator selection. Selects the top percentile nodes by fitness value, meaning that the top nth percentile node is found by fitness, afterwhich all nodes with fitness value at least that value is selected.
