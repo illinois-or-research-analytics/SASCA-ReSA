@@ -87,6 +87,12 @@ void Graph::ParseNodelist() {
                 this->SetIntAttribute("initial_author_reputation", integer_node, initial_author_reputation);
                 int num_authors = std::stoi(current_line[header_to_index_map["num_authors"]]);
                 this->SetIntAttribute("num_authors", integer_node, num_authors);
+                int cartel_id = std::stoi(current_line[header_to_index_map["cartel_id"]]);
+                if (cartel_id != -1) {
+                    this->SetIntAttribute("cartel_id", integer_node, cartel_id);
+                    this->cartel_set.insert(cartel_id);
+                    this->SetCartelID(author, cartel_id);
+                }
                 this->author_birth_year_map[author] = integer_year;
                 this->UpdateAuthorPublicationMap(author, integer_node);
             } else {
@@ -150,6 +156,33 @@ void Graph::ParseNodelist() {
             }
         }
     }
+}
+
+std::set<int> Graph::GetCartelSet() const {
+    return this->cartel_set;
+}
+
+void Graph::SetCartelID(int author, int cartel_id) {
+    this->author_cartel_map[author] = cartel_id;
+    this->cartel_author_map[cartel_id].insert(author);
+}
+
+std::set<int> Graph::GetCartelAuthors(int cartel_id) const {
+    if (cartel_id == -1) {
+        return std::set<int>();
+    }
+    return this->cartel_author_map.at(cartel_id);
+}
+
+std::vector<int> Graph::GetAuthorPublications(int author_id) const {
+    return this->author_publication_map.at(author_id);
+}
+
+int Graph::GetCartelID(int author) const {
+    if (this->author_cartel_map.contains(author)) {
+        return this->author_cartel_map.at(author);
+    }
+    return -1;
 }
 
 void Graph::UpdateAuthorPublicationMap(int author, int node) {
@@ -236,6 +269,13 @@ void Graph::ReadNumAuthorsBag() {
         line_no ++;
     }
 }
+
+void Graph::UpdateAuthorManual(int author_id) {
+    int num_publications_by_author = this->author_publication_map[author_id].size();
+    std::erase(this->publication_count_to_author_map[num_publications_by_author], author_id);
+    this->publication_count_to_author_map[num_publications_by_author + 1].push_back(author_id);
+}
+
 
 int Graph::GetNextAuthor(int current_year) {
     int num_authors_with_one_paper = this->publication_count_to_author_map[1].size();
@@ -372,7 +412,7 @@ void Graph::WriteGraph(std::string output_file) const {
 
 void Graph::WriteAttributes(std::string auxiliary_information_file) const {
     std::ofstream auxiliary_information_filehandle(auxiliary_information_file);
-    auxiliary_information_filehandle << "node_id,type,year,alpha,pa_weight,fit_weight,num_authors_weight,author_reputation_weight,fit_lag_duration,fit_peak_value,fit_peak_duration,in_degree,out_degree,assigned_out_degree,planted_nodes_line_number,generator_node_string,sampled_neighborhood_size,fully_random_citations,author_id,num_authors,initial_author_reputation,final_author_reputation\n";
+    auxiliary_information_filehandle << "node_id,type,year,alpha,pa_weight,fit_weight,num_authors_weight,author_reputation_weight,fit_lag_duration,fit_peak_value,fit_peak_duration,in_degree,out_degree,assigned_out_degree,planted_nodes_line_number,generator_node_string,sampled_neighborhood_size,fully_random_citations,author_id,num_authors,initial_author_reputation,final_author_reputation,cartel_id\n";
     for(const auto& node_id : this->GetNodeSet()) {
         std::string node_type = this->GetStringAttribute("type", node_id);
         int year = this->GetIntAttribute("year", node_id);
@@ -395,6 +435,7 @@ void Graph::WriteAttributes(std::string auxiliary_information_file) const {
         int fully_random_citations = -1;
         int initial_author_reputation = this->GetIntAttribute("initial_author_reputation", node_id);
         int final_author_reputation = this->GetAuthorReputationForNode(node_id);
+        int cartel_id = this->GetCartelID(author);
         if(node_type != "seed") {
             alpha = this->GetDoubleAttribute("alpha", node_id);
             pa_weight = this->GetDoubleAttribute("pa_weight", node_id);
@@ -409,7 +450,7 @@ void Graph::WriteAttributes(std::string auxiliary_information_file) const {
             neighborhood_size = this->GetIntAttribute("sampled_neighborhood_size", node_id);
             fully_random_citations = this->GetIntAttribute("fully_random_citations", node_id);
         }
-        auxiliary_information_filehandle << node_id << "," << node_type << "," << year << "," << alpha << "," << pa_weight << "," << fit_weight << "," << num_authors_weight << "," << author_reputation_weight << "," << fit_lag_duration << "," << fit_peak_value << "," << fit_peak_duration << "," << in_degree << "," << out_degree << "," << assigned_out_degree << "," << planted_nodes_line_number << "," << generator_node_string << "," << neighborhood_size << "," << fully_random_citations << "," << author << "," << num_authors << "," << initial_author_reputation << "," << final_author_reputation << "\n";
+        auxiliary_information_filehandle << node_id << "," << node_type << "," << year << "," << alpha << "," << pa_weight << "," << fit_weight << "," << num_authors_weight << "," << author_reputation_weight << "," << fit_lag_duration << "," << fit_peak_value << "," << fit_peak_duration << "," << in_degree << "," << out_degree << "," << assigned_out_degree << "," << planted_nodes_line_number << "," << generator_node_string << "," << neighborhood_size << "," << fully_random_citations << "," << author << "," << num_authors << "," << initial_author_reputation << "," << final_author_reputation << "," << cartel_id << "\n";
     }
     auxiliary_information_filehandle.close();
 }

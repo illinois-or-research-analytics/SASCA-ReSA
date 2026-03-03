@@ -98,6 +98,8 @@ class ABM {
         void FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr);
         void UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec);
         void PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len);
+        int MakeCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>> n_hop_map, int* citations, int num_cartel_citations);
+        int GetNumCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, std::vector<int>>& n_hop_map, int total_num_citations_neighborhood);
         void PopulateAlphaArr(double* alpha_arr, int len);
         void PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int len);
         void PopulateNumAuthorsArr(Graph* graph, int* num_authors_arr, int len);
@@ -126,8 +128,9 @@ class ABM {
         void LogTime(int current_year, std::string label, int time_elapsed);
         std::chrono::time_point<std::chrono::steady_clock> LocalLogTime(std::vector<std::pair<std::string, int>>& local_parallel_stage_time_vec, std::chrono::time_point<std::chrono::steady_clock> local_prev_time, std::string label);
         void WriteTimingFile(int start_year, int end_year);
-        std::unordered_map<int, int> PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int* num_authors_arr);
+        std::unordered_map<int, int> PlantNodes(Graph* graph, double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int* out_degree_arr, double* alpha_arr, int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int* num_authors_arr, int* planted_author_id_arr);
 
+        std::vector<int> GetCartelGeneratorNodes(Graph* graph, int author_id);
         void InitializeSeedFitness(Graph* graph) {
             for(auto const& node : graph->GetNodeSet()) {
                 int fitness_lag_uniform = 0; // MARK: hard coded to be static fitness
@@ -274,6 +277,7 @@ class ABM {
         const int peak_constant = 2;
         const int delay_constant = 500;
         const int max_out_degree = 249;
+        const double cartel_outdegree_proportion = 0.75;
         int next_author_id = 0;
         int num_bins;
         std::uniform_real_distribution<double> fitness_value_uniform_distribution{0, 1};

@@ -78,11 +78,18 @@ class Graph {
         void ReadNumAuthorsBag();
         int IsAuthorFunded(int author) const;
         void UpdateAuthorPublicationMap(int author, int node);
+        void SetCartelID(int author, int cartel_id);
+        int GetCartelID(int author) const;
+        std::set<int> GetCartelAuthors(int cartel_id) const;
+        std::vector<int> GetAuthorPublications(int author_id) const;
+        void UpdateAuthorManual(int author_id);
+        std::set<int> GetCartelSet() const;
 
     private:
         std::set<int> node_set;
         std::string edgelist;
         std::string nodelist;
+        std::set<int> cartel_set;
         bool start_from_checkpoint;
         std::string num_authors_bag;
         int author_max_lifetime;
@@ -101,6 +108,8 @@ class Graph {
         std::unordered_map<std::string, std::unordered_map<int, int>> int_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, std::string>> string_attribute_map;
         std::unordered_map<std::string, std::unordered_map<int, double>> double_attribute_map;
+        std::unordered_map<int, int> author_cartel_map;
+        std::unordered_map<int, std::set<int>> cartel_author_map;
 };
 
 #endif
