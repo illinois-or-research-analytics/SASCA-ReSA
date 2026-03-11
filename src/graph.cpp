@@ -93,8 +93,13 @@ void Graph::ParseNodelist() {
                     this->cartel_set.insert(cartel_id);
                     this->SetCartelID(author, cartel_id);
                 }
-                this->author_birth_year_map[author] = integer_year;
+                if(this->author_birth_year_map.contains(author)) {
+                    this->author_birth_year_map[author] = std::min(this->author_birth_year_map[author], integer_year);
+                } else {
+                    this->author_birth_year_map[author] = integer_year;
+                }
                 this->UpdateAuthorPublicationMap(author, integer_node);
+                this->next_author_id = std::max(this->next_author_id, author);
             } else {
                 int fitness_lag_uniform = 0; // MARK: hard coded to be static fitness
                 int fitness_peak_uniform = 1000; // MARK: hard coded to be static fitness
@@ -119,10 +124,16 @@ void Graph::ParseNodelist() {
         //     int current_author = this->author_birth_year_map[i];
         //     // this->author_reputation_map[current_author] ++;
         // }
-        for(size_t i = 0; i < this->author_birth_year_map.size(); i ++) {
-            int current_author = this->author_birth_year_map[i];
-            int current_author_publication_count = this->author_publication_map.at(current_author).size();
-            this->publication_count_to_author_map[current_author_publication_count].push_back(current_author);
+        // for(size_t i = 0; i < this->author_birth_year_map.size(); i ++) {
+        //     int current_author = this->author_birth_year_map[i];
+        //     int current_author_publication_count = this->author_publication_map.at(current_author).size();
+        //     this->publication_count_to_author_map[current_author_publication_count].push_back(current_author);
+        // }
+        this->next_author_id ++;
+        std::cerr << "first valid author id is: " << this->next_author_id << std::endl;
+        for(const auto& [author_id, birth_year]: author_birth_year_map) {
+            int author_id_publication_count = this->author_publication_map.at(author_id).size();
+            this->publication_count_to_author_map[author_id_publication_count].push_back(author_id);
         }
     } else {
         std::sort(node_year_vec.begin(), node_year_vec.end(), [](const std::pair<int, int>& left, const std::pair<int, int>& right) {

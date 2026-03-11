@@ -836,7 +836,7 @@ int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continu
 int ABM::GetNumCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, std::vector<int>>& n_hop_map, int total_num_citations_neighborhood) {
     std::set<int> cartel_authors_in_neighborhood;
     int current_cartel_id = graph->GetCartelID(author_id);
-    if (current_cartel_id != -1) {
+    if (current_cartel_id > 0) {
         for(auto const& [distance, node_vec] : n_hop_map) {
             for (size_t i = 0; i < node_vec.size() ; i ++) {
                 int node_author_id = graph->GetIntAttribute("author_id", node_vec.at(i));
@@ -1508,6 +1508,9 @@ bool ABM::ValidateArguments() {
     if (!this->ValidateArgument("Agent", "author_max_lifetime", this->author_max_lifetime, -42)) {
         return false;
     }
+    if (!this->ValidateArgument("Agent", "cartel_outdegree_proportion", this->cartel_outdegree_proportion, -42)) {
+        return false;
+    }
     if (!this->ValidateArgument("Agent", "in_degree_threshold", this->in_degree_threshold, -42)) {
         return false;
     }
@@ -1694,7 +1697,7 @@ int ABM::main() {
 
             double new_node_non_random_draw = non_random_generator_uniform_distribution(generator);
             // if author part of cartel, pick randomly from cartel list
-            if (graph->GetCartelID(author_id) != -1) {
+            if (graph->GetCartelID(author_id) > 0) {
                 std::vector<int> cartel_generator_nodes = this->GetCartelGeneratorNodes(graph, author_id);
                 std::vector<int> generator_nodes = this->GetGeneratorNodesFromSet(cartel_generator_nodes);
                 this->UpdateGraphAttributesGeneratorNodes(graph, new_node, generator_nodes);
@@ -1756,7 +1759,10 @@ int ABM::main() {
             // int num_generator_node_citation = generator_nodes.size(); // should be 1 for now
             // int same_year_citation = same_year_source_nodes.count(i); // could be 0 or 1
             remaining_citation_quota -= same_year_source_nodes.count(i); // could be 0 or 1
-            int current_cartel_size = graph->GetCartelAuthors(graph->GetCartelID(author_id)).size();
+            int current_cartel_size = 0;
+            if (graph->GetCartelID(author_id) > 0) {
+                current_cartel_size = graph->GetCartelAuthors(graph->GetCartelID(author_id)).size();
+            }
             int num_cartel_citations = std::min(num_cartel_citations_limit, current_cartel_size);
             remaining_citation_quota -= num_cartel_citations;
 
