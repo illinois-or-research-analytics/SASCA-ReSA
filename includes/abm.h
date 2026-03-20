@@ -24,7 +24,7 @@ enum Log {info, debug, error = -1};
 
 class ABM {
     public:
-        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, int fitness_lag_duration_min, int fitness_lag_duration_max, int fitness_peak_duration_min, int fitness_peak_duration_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, double cartel_outdegree_proportion, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), fitness_lag_duration_min(fitness_lag_duration_min), fitness_lag_duration_max(fitness_lag_duration_max), fitness_peak_duration_min(fitness_peak_duration_min), fitness_peak_duration_max(fitness_peak_duration_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), cartel_outdegree_proportion(cartel_outdegree_proportion), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
+        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, int fitness_lag_duration_min, int fitness_lag_duration_max, int fitness_peak_duration_min, int fitness_peak_duration_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, double cartel_outdegree_proportion, bool null_cartel, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), fitness_lag_duration_min(fitness_lag_duration_min), fitness_lag_duration_max(fitness_lag_duration_max), fitness_peak_duration_min(fitness_peak_duration_min), fitness_peak_duration_max(fitness_peak_duration_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), cartel_outdegree_proportion(cartel_outdegree_proportion), null_cartel(null_cartel), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
             // initial validation
             if (this->log_file == "") {
                 std::cerr << "Log file is required" << std::endl;
@@ -42,7 +42,14 @@ class ABM {
                     std::cerr << "Requested path: " + this->log_file << std::endl;
                     exit(1);
                 }
+            }
+            if(this->log_level == 1) {
                 this->timing_file_handle.open(this->log_file + "_timing");
+                if (!this->timing_file_handle) {
+                    std::cerr << "Opening timing file failed" << std::endl;
+                    std::cerr << "Requested path: " + this->log_file << "_timing" << std::endl;
+                    exit(1);
+                }
                 this->timing_file_handle << "year,stage,time\n";
             }
             if (!this->ValidateArguments()) {
@@ -62,7 +69,9 @@ class ABM {
             if(this->log_level > -1) {
                 this->log_file_handle.close();
             }
-            this->timing_file_handle.close();
+            if(this->log_level == 1) {
+                this->timing_file_handle.close();
+            }
         }
 
         int main();
@@ -94,11 +103,12 @@ class ABM {
         void FillInDegreeArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* in_degree_arr);
         void InitializeFitness(Graph* graph);
         void FillFitnessArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, int* fitness_arr);
-        // void FillNumAuthorsArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* num_authors_arr);
         void FillAuthorReputationArr(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int* author_reputation_arr);
         void UpdateGraphAttributesInitialAuthorReputations(Graph* graph, const std::vector<int>& new_nodes_vec);
         void PopulateWeightArrs(double* pa_weight_arr, double* fit_weight_arr, double* num_authors_weight_arr, double* author_reputation_weight_arr, int len);
-        int MakeCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>> n_hop_map, int* citations, int num_cartel_citations);
+        int MakeNullCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations);
+        int MakeScoredCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size);
+        int MakeCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size);
         int GetNumCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, std::vector<int>>& n_hop_map, int total_num_citations_neighborhood);
         void PopulateAlphaArr(double* alpha_arr, int len);
         void PopulateFitnessArrs(int* fitness_lag_duration_arr, int* fitness_peak_value_arr, int* fitness_peak_duration_arr, int len);
@@ -162,8 +172,6 @@ class ABM {
         template<typename T>
         void AssignFitnessLagDuration(Graph* graph, const T& container) {
             for(auto const& node : container) {
-                /* std::random_device rand_dev; */
-                /* std::minstd_rand generator{rand_dev()}; */
                 pcg_extras::seed_seq_from<std::random_device> rand_dev;
                 pcg32 generator(rand_dev);
                 int fitness_lag_uniform = this->fitness_lag_duration_uniform_distribution(generator);
@@ -175,8 +183,6 @@ class ABM {
         template<typename T>
         void AssignFitnessPeakDuration(Graph* graph, const T& container) {
             for(auto const& node : container) {
-                /* std::random_device rand_dev; */
-                /* std::minstd_rand generator{rand_dev()}; */
                 pcg_extras::seed_seq_from<std::random_device> rand_dev;
                 pcg32 generator(rand_dev);
                 int fitness_peak_uniform = this->fitness_peak_duration_uniform_distribution(generator);
@@ -208,11 +214,6 @@ class ABM {
             std::discrete_distribution<int> int_discrete_distribution(fitness_probabilities.begin(), fitness_probabilities.end());
             */
             for(auto const& node : container) {
-                /*
-                int current_fitness = int_discrete_distribution(generator) + 1;
-                graph->SetIntAttribute("fitness_peak_value", node, current_fitness);
-                */
-                /* graph->SetIntAttribute("fitness_peak_value", node, 1); */
                 double fitness_uniform = this->fitness_value_uniform_distribution(generator);
                 double adjusted_alpha = this->fitness_alpha + 1;
                 double base_left = (pow(this->fitness_value_max, adjusted_alpha) - pow(this->fitness_value_min, adjusted_alpha)) * fitness_uniform;
@@ -260,6 +261,7 @@ class ABM {
         std::string num_authors_bag;
         int author_max_lifetime;
         double cartel_outdegree_proportion;
+        bool null_cartel;
         std::string output_file;
         std::string auxiliary_information_file;
         std::string log_file;
@@ -288,7 +290,6 @@ class ABM {
         std::uniform_int_distribution<int> fitness_peak_duration_uniform_distribution{fitness_peak_duration_min, fitness_peak_duration_max};
         std::vector<int> out_degree_bag_vec;
         std::vector<int> bin_boundaries;
-        /* std::unordered_map<int, double> recency_probabilities_map; */
         std::unordered_map<int, int> recency_counts_map;
         std::unordered_map<int, std::unordered_map<int, std::unordered_map<std::string, std::string>>> planted_nodes_map;
         std::unordered_map<int, std::vector<std::pair<std::string, int>>> timing_map;

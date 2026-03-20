@@ -27,104 +27,9 @@ int main(int argc, char* argv[]) {
         std::cout << reader.ParseErrorMessage() << std::endl;;
         return 1;
     }
-
-    /* main_program.add_argument("--edgelist") */
-    /*     .required() */
-    /*     .help("Input edgelist (source, target)"); */
-    /* main_program.add_argument("--nodelist") */
-    /*     .required() */
-    /*     .help("Input nodelist (node, year)"); */
-    /* main_program.add_argument("--out-degree-bag") */
-    /*     .required() */
-    /*     .help("Input out-degree bag (, out-degree)"); */
-    /* main_program.add_argument("--recency-probabilities") */
-    /*     .required() */
-    /*     .help("Input recency bag (year, probability)"); */
-    /* main_program.add_argument("--planted-nodes") */
-    /*     .default_value("") */
-    /*     .help("Planted nodes file (year, fitness lag duration, fitness peak value, fitess peak duration, count)"); */
-    /* main_program.add_argument("--preferential-weight") */
-    /*     .default_value(double(-1)) */
-    /*     .help("Preferential attachment weight") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--fitness-weight") */
-    /*     .default_value(double(-1)) */
-    /*     .help("Fitness weight") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--minimum-preferential-weight") */
-    /*     .default_value(double(-1)) */
-    /*     .help("Minimum preferential attachment weight") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--minimum-fitness-weight") */
-    /*     .default_value(double(-1)) */
-    /*     .help("Minimum fitness weight") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--fully-random-citations") */
-    /*     .default_value(double(0.05)) */
-    /*     .help("Constant percentage for radom citations") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--growth-rate") */
-    /*     .required() */
-    /*     .help("Growth rate") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--num-cycles") */
-    /*     .required() */
-    /*     .help("Number of years") */
-    /*     .scan<'d', int>(); */
-    /* main_program.add_argument("--same-year-proportion") */
-    /*     .required() */
-    /*     .help("Growth rate") */
-    /*     .scan<'g', double>(); */
-    /* main_program.add_argument("--neighborhood-sample") */
-    /*     .default_value(int(-1)) */
-    /*     .help("Number to sample from the 1 and 2 hop neighborhoods") */
-    /*     .scan<'d', int>(); */
-    /* main_program.add_argument("--output-file") */
-    /*     .required() */
-    /*     .help("Output clustering file"); */
-    /* main_program.add_argument("--auxiliary-information-file") */
-    /*     .required() */
-    /*     .help("Auxillary information file"); */
-    /* main_program.add_argument("--log-file") */
-    /*     .required() */
-    /*     .help("Output log file"); */
-    /* main_program.add_argument("--num-processors") */
-    /*     .default_value(int(1)) */
-    /*     .help("Number of processors") */
-    /*     .scan<'d', int>(); */
-    /* main_program.add_argument("--log-level") */
-    /*     .default_value(int(1)) */
-    /*     .help("Log level where 0 = silent, 1 = info, 2 = verbose") */
-    /*     .scan<'d', int>(); */
-
-/* [Environment] */
-/* nodelist=<FILE> ; csv with (node_id, publication_year) on each line */
-/* edgelist=<FILE> ; csv with (source,target) on each line */
-/* recency_table=<FILE> ; csv derived from a real-world network */
-/* out_degree_bag=<FILE> ; csv derived from a real-world network */
-/* growth_rate=<DOUBLE> ; floating point value e.g., 0.03 for 3% */
-/* num_cycles=<INT> ; integer value e.g., 30 for a 30-year simulation */
-
-/* [Agent] */
-/* alpha=<FLOAT> ; floating point value specifying the alpha for neighborhood */
-/* recency_bins=<FILE> ; csv file for recency bins */
-/* same_year=<DOUBLE> ; floating point value e.g., 0.12 for 12% */
-/* fully_random_citations=<DOUBLE> ; floating point value e.g., 0.05 for 5% */
-/* preferential_weight=<DOUBLE> ; floating point value e.g., 0.33 */
-/* fitness_weight=<DOUBLE> ; floating point value e.g., 0.33 */
-
-
-/* [General] */
-/* output_file=<FILE> ; output csv edgelist */
-/* auxiliary_information_file=<FILE> ; output auxiliary information file */
-/* log_file=<FILE> ; output log file */
-/* num_processors=<INT> ; integer valued maximum parallelism allowed */
-/* log_level=<INT> ; 0, 1, and 2 for silent, info, and verbose */
-/* reader.Get("user", "name", "UNKNOWN") << ", email=" */
-    /* std::vector<std::string> section_expected_variables = {"Environment", "Agent", "General"}; */
     const std::unordered_map<std::string, std::vector<std::string>> required_params = {
         {"Environment", {"edgelist", "nodelist", "out_degree_bag", "recency_table", "planted_nodes", "growth_rate", "num_cycles", "recency_bins", "start_from_checkpoint"}},
-        {"Agent", {"fully_random_citations", "preferential_weight", "fitness_weight", "num_authors_weight", "author_reputation_weight", "fitness_value_min", "fitness_value_max", "fitness_lag_duration_min", "fitness_lag_duration_max", "fitness_peak_duration_min", "fitness_peak_duration_max", "same_year_citations", "neighborhood_sample", "num_authors_bag", "author_max_lifetime", "cartel_outdegree_proportion", "alpha", "use_alpha", "in_degree_threshold", "fitness_threshold", "recency_threshold", "non_random_generator_probability"}},
+        {"Agent", {"fully_random_citations", "preferential_weight", "fitness_weight", "num_authors_weight", "author_reputation_weight", "fitness_value_min", "fitness_value_max", "fitness_lag_duration_min", "fitness_lag_duration_max", "fitness_peak_duration_min", "fitness_peak_duration_max", "same_year_citations", "neighborhood_sample", "num_authors_bag", "author_max_lifetime", "cartel_outdegree_proportion", "null_cartel", "alpha", "use_alpha", "in_degree_threshold", "fitness_threshold", "recency_threshold", "non_random_generator_probability"}},
         {"General", {"output_file", "auxiliary_information_file", "log_file", "num_processors", "log_level"}}
     };
     for(auto const& [section_name, section_expected_variables] : required_params) {
@@ -188,6 +93,17 @@ int main(int argc, char* argv[]) {
     std::string num_authors_bag = reader.Get("Agent", "num_authors_bag", "");
     int author_max_lifetime = reader.GetInteger("Agent", "author_max_lifetime", -42);
     double cartel_outdegree_proportion = reader.GetReal("Agent", "cartel_outdegree_proportion", -42);
+    std::string null_cartel_string = reader.Get("Agent", "null_cartel", "");
+    bool null_cartel = false;
+    if (null_cartel_string == "true") {
+        null_cartel = true;
+    } else if (null_cartel_string == "false") {
+        null_cartel = false;
+    } else {
+        std::cerr << "Valid values for required flag null_cartel are 'true' or 'false'" << std::endl;
+        std::cerr << null_cartel_string + " is invalid" << std::endl;
+        return 1;
+    }
     double alpha = reader.GetReal("Agent", "alpha", -42);
     double minimum_alpha = reader.GetReal("Agent", "minimum_alpha", -42); // unused
     std::string use_alpha_string = reader.Get("Agent", "use_alpha", "");
@@ -221,7 +137,7 @@ int main(int argc, char* argv[]) {
     std::string log_file = reader.Get("General", "log_file", "");
     int num_processors = reader.GetInteger("General", "num_processors", -42);
     int log_level = reader.GetInteger("General", "log_level", -41) - 1;
-    ABM* abm = new ABM(edgelist, nodelist, out_degree_bag, recency_table, recency_bins, alpha, minimum_alpha, use_alpha, start_from_checkpoint, planted_nodes, fully_random_citations, preferential_weight, fitness_weight, num_authors_weight, author_reputation_weight, fitness_value_min, fitness_value_max,  fitness_lag_duration_min, fitness_lag_duration_max, fitness_peak_duration_min, fitness_peak_duration_max, minimum_preferential_weight, minimum_fitness_weight, in_degree_threshold, fitness_threshold, recency_threshold, non_random_generator_probability, growth_rate, num_cycles, same_year_citations, neighborhood_sample, num_authors_bag, author_max_lifetime, cartel_outdegree_proportion, output_file, auxiliary_information_file, log_file, num_processors, log_level);
+    ABM* abm = new ABM(edgelist, nodelist, out_degree_bag, recency_table, recency_bins, alpha, minimum_alpha, use_alpha, start_from_checkpoint, planted_nodes, fully_random_citations, preferential_weight, fitness_weight, num_authors_weight, author_reputation_weight, fitness_value_min, fitness_value_max,  fitness_lag_duration_min, fitness_lag_duration_max, fitness_peak_duration_min, fitness_peak_duration_max, minimum_preferential_weight, minimum_fitness_weight, in_degree_threshold, fitness_threshold, recency_threshold, non_random_generator_probability, growth_rate, num_cycles, same_year_citations, neighborhood_sample, num_authors_bag, author_max_lifetime, cartel_outdegree_proportion, null_cartel, output_file, auxiliary_information_file, log_file, num_processors, log_level);
     abm->main();
     delete abm;
 }

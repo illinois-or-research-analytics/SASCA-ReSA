@@ -5,8 +5,6 @@ Graph::Graph(std::string edgelist, std::string nodelist, bool start_from_checkpo
     this->ReadNumAuthorsBag();
     this->ParseEdgelist();
     this->ParseNodelist();
-    // this->ComputeAuthorReputations();
-    // this->SaveInitialAuthorReputations();
 }
 
 
@@ -104,33 +102,16 @@ void Graph::ParseNodelist() {
                 int fitness_lag_uniform = 0; // MARK: hard coded to be static fitness
                 int fitness_peak_uniform = 1000; // MARK: hard coded to be static fitness
                 int fitness_power = 1;
-                // int author_id = this->GetNextAuthor();
-                // int num_authors = this->GetNextNumAuthors();
-                // std::cerr << "author id  " << author_id << " with count " << num_authors << std::endl;
-                // int num_authors = this->GetNextNumAuthors();
                 this->SetStringAttribute("type", integer_node, "seed");
                 this->SetIntAttribute("fitness_lag_duration", integer_node, fitness_lag_uniform);
                 this->SetIntAttribute("fitness_peak_duration", integer_node, fitness_peak_uniform);
                 this->SetIntAttribute("fitness_peak_value", integer_node, fitness_power);
-                // this->SetIntAttribute("num_authors", integer_node, num_authors);
-                // this->SetIntAttribute("author", integer_node, author_id);
-                // this->SetIntAttribute("num_authors", integer_node, num_authors);
             }
         }
         line_no ++;
     }
     if (this->start_from_checkpoint) {
-        // for(size_t i = 0; i < this->author_birth_year_map.size(); i ++) {
-        //     int current_author = this->author_birth_year_map[i];
-        //     // this->author_reputation_map[current_author] ++;
-        // }
-        // for(size_t i = 0; i < this->author_birth_year_map.size(); i ++) {
-        //     int current_author = this->author_birth_year_map[i];
-        //     int current_author_publication_count = this->author_publication_map.at(current_author).size();
-        //     this->publication_count_to_author_map[current_author_publication_count].push_back(current_author);
-        // }
         this->next_author_id ++;
-        std::cerr << "first valid author id is: " << this->next_author_id << std::endl;
         for(const auto& [author_id, birth_year]: author_birth_year_map) {
             int author_id_publication_count = this->author_publication_map.at(author_id).size();
             this->publication_count_to_author_map[author_id_publication_count].push_back(author_id);
@@ -232,23 +213,6 @@ void Graph::SaveInitialAuthorReputations() {
 int Graph::GetAuthorReputationForNode(int node) const {
     int author_id = this->GetIntAttribute("author_id", node);
     return this->author_reputation_map.at(author_id);
-    // const std::vector<int>& publication_vec = this->author_publication_map.at(author_id);
-    // if (publication_vec.empty()) {
-    //     return 0;
-    // }
-    // std::unordered_map<int, int> freq_map;
-    // for(size_t i = 0; i < publication_vec.size(); i ++) {
-    //     int current_publication = publication_vec.at(i);
-    //     size_t current_publication_in_degree = this->GetInDegree(current_publication);
-    //     freq_map[std::min(publication_vec.size(), current_publication_in_degree)] ++;
-    // }
-    // int h_index = publication_vec.size();
-    // int num_candidate_papers = freq_map[h_index];
-    // while(h_index > num_candidate_papers) {
-    //     h_index --;
-    //     num_candidate_papers += freq_map[h_index];
-    // }
-    // return h_index;
 }
 
 int Graph::GetNextNumAuthors() {
@@ -328,7 +292,6 @@ int Graph::GetNextAuthor(int current_year) {
         this->author_birth_year_map[this->next_author_id] = current_year;
         this->next_author_id ++;
     }
-    // this->author_publication_map[return_author].push_back();
     return return_author;
 
 }
