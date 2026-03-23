@@ -125,7 +125,7 @@ void Graph::ParseNodelist() {
         for(size_t i = 0; i < node_year_vec.size(); i ++) {
             int current_node_id = node_year_vec[i].first;
             int current_year = node_year_vec[i].second;
-            int author_id = this->GetNextAuthor(current_year);
+            int author_id = this->GetNextAuthor(current_year, std::set<int>());
             this->SetIntAttribute("author_id", current_node_id, author_id);
             this->UpdateAuthorPublicationMap(author_id, current_node_id);
             if (previous_year != current_year) {
@@ -252,7 +252,7 @@ void Graph::UpdateAuthorManual(int author_id) {
 }
 
 
-int Graph::GetNextAuthor(int current_year) {
+int Graph::GetNextAuthor(int current_year, const std::set<int>& exclusion_set) {
     int num_authors_with_one_paper = this->publication_count_to_author_map[1].size();
     bool found_valid_place = false;
     int proposed_publication_count_for_author = 2;
@@ -271,7 +271,7 @@ int Graph::GetNextAuthor(int current_year) {
         std::vector<int> living_authors;
         for(size_t i = 0; i < this->publication_count_to_author_map[proposed_publication_count_for_author - 1].size(); i ++) {
             int current_author = this->publication_count_to_author_map[proposed_publication_count_for_author - 1][i];
-            if (current_year - this->author_birth_year_map[current_author] < this->author_max_lifetime) {
+            if (current_year - this->author_birth_year_map[current_author] < this->author_max_lifetime && !exclusion_set.contains(current_author)) {
                 living_authors.push_back(current_author);
             }
         }

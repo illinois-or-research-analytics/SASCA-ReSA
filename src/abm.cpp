@@ -1620,10 +1620,12 @@ int ABM::main() {
             std::set<int> current_cartel_authors = graph->GetCartelAuthors(cartel_id);
             cartel_author_ids.insert(current_cartel_authors.begin(), current_cartel_authors.end());
         }
+        std::set<int> initial_cartel_author_ids = cartel_author_ids;
         for(size_t i = 0; i < new_nodes_vec.size(); i ++) {
             int author_id = -1;
             int new_node = new_nodes_vec[i];
             int weight_arr_index = continuous_node_mapping[new_node] - initial_graph_size;
+            int graph_arr_index = continuous_node_mapping[new_node];
             if (planted_nodes_line_number_map.contains(weight_arr_index) && planted_author_id_arr[weight_arr_index] != -1) {
                 author_id = planted_author_id_arr[weight_arr_index];
                 graph->UpdateAuthorManual(author_id);
@@ -1633,8 +1635,19 @@ int ABM::main() {
                 graph->UpdateAuthorManual(author_id);
                 cartel_author_ids.erase(cartel_author_ids.begin());
                 this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
+                // exp computed next year
+                num_authors_arr[graph_arr_index] = 6; // maybe just 3? this is median
+                // pa_weight_arr[weight_arr_index] = 0.25;
+                // fit_weight_arr[weight_arr_index] = 0.25;
+                // num_authors_weight_arr[weight_arr_index] = 0.25;
+                // author_reputation_weight_arr[weight_arr_index] = 0.25;
+                // out_degree_arr[weight_arr_index] = 35; // this is median
+                // alpha_arr[weight_arr_index] = 0.5;
+                fitness_lag_duration_arr[weight_arr_index] = 0;
+                fitness_peak_value_arr[weight_arr_index] = 1;
+                fitness_peak_duration_arr[weight_arr_index] = 1000;
             } else {
-                author_id = graph->GetNextAuthor(current_year);
+                author_id = graph->GetNextAuthor(current_year, initial_cartel_author_ids);
                 this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
             }
 

@@ -73,7 +73,7 @@ class Graph {
         void PrintGraph() const;
         void WriteGraph(std::string output_file) const;
         void WriteAttributes(std::string auxiliary_information_file) const;
-        int GetNextAuthor(int current_year);
+        int GetNextAuthor(int current_year, const std::set<int>& exclusion_set);
         int GetNextNumAuthors();
         void ReadNumAuthorsBag();
         int IsAuthorFunded(int author) const;
