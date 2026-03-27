@@ -83,7 +83,9 @@ recency_threshold=<INT> ; used for non-random generator selection. Selects only 
 non_random_generator_probability=<DOUBLE> ; used for non-random generator selection. 0.9 for 90% of the nodes picking non-random generators
 author_max_lifetime=<INT> ; used for the maximum amount of years that an author is allowed to publish
 num_authors_bag=<FILE> ; used for sampling the number of authors per paper
-
+cartel_outdegree_proportion=<DOUBLE> ; the proportion of out-degree that should go towards within the cartel group
+null_cartel=<BOOL> ; boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not
+clonal_cartel_agent_file<(optional) FILE> ; csv with clonal agent attributes
 
 [General]
 output_file=<FILE> ; output csv edgelist
@@ -148,7 +150,10 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `recency_threshold`: used for non-random generator selection. Selects only from the past n years e.g., if `recency_threshold=5` and current year is 1988, then 5 years of publications will be considered so the nodes with publication year at least 1983 and at most 1987.
 - `non_random_generator_probability`: Probability of each node to select a generator node in a non-random manner according to the different thresholds. Set to 0 for fully random and 1 for all non-random.
 - `author_max_lifetime`: used for the maximum amount of years that an author is allowed to publish. When this value is `k`, the difference between the publication year of the last paper and the publication year of the first paper of any given author cannot exceed `k`.
-- `num_authors_bag` ; used for sampling the number of authors per paper. This is a CSV wherelthe header line is ignored and each subsequent line is structed as (index,number of authors). The index column is not used, and the number of authors column is used to sample a number for the number of authors for each paper.
+- `num_authors_bag` : used for sampling the number of authors per paper. This is a CSV wherelthe header line is ignored and each subsequent line is structed as (index,number of authors). The index column is not used, and the number of authors column is used to sample a number for the number of authors for each paper.
+- `cartel_outdegree_proportion` : the proportion of out-degree that should go towards within the cartel group. Even if there are no cartel authors, make sure to set this to some value between 0 and 1. It will not be used if there are no cartel authors.
+- `null_cartel` : boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not. Set this to either true or falses even if  there are no cartel authors. It will not be used if there are no cartel authors.
+- `clonal_cartel_agent_file` : csv with clonal agent attributes. The allowed columns are num\_authors,pa\_weight,fit\_weight,num\_authors\_weight,author\_reputation\_weight,out\_degree,alpha,fitness\_lag\_duration,fitness\_peak\_value, and fitness\_peak\_duration. The order of the columns do not matter, and any subset of these columns can be used and others omitted in the csv file.
 
 
 #### General flags
