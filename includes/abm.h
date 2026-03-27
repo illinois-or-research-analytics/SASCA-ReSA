@@ -14,6 +14,7 @@
 #include <queue>
 #include <tuple>
 #include <omp.h>
+#include <optional>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "graph.h"
@@ -24,7 +25,7 @@ enum Log {info, debug, error = -1};
 
 class ABM {
     public:
-        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, int fitness_lag_duration_min, int fitness_lag_duration_max, int fitness_peak_duration_min, int fitness_peak_duration_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, double cartel_outdegree_proportion, bool null_cartel, std::string output_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), fitness_lag_duration_min(fitness_lag_duration_min), fitness_lag_duration_max(fitness_lag_duration_max), fitness_peak_duration_min(fitness_peak_duration_min), fitness_peak_duration_max(fitness_peak_duration_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), cartel_outdegree_proportion(cartel_outdegree_proportion), null_cartel(null_cartel), output_file(output_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
+        ABM(std::string edgelist, std::string nodelist, std::string out_degree_bag, std::string recency_table, std::string recency_bins, double alpha, double minimum_alpha, bool use_alpha, bool start_from_checkpoint, std::string planted_nodes, double fully_random_citations, double preferential_weight, double fitness_weight, double num_authors_weight, double author_reputation_weight, int fitness_value_min, int fitness_value_max, int fitness_lag_duration_min, int fitness_lag_duration_max, int fitness_peak_duration_min, int fitness_peak_duration_max, double minimum_preferential_weight, double minimum_fitness_weight, int in_degree_threshold, int fitness_threshold, int recency_threshold, double non_random_generator_probability, double growth_rate, int num_cycles, double same_year_citations, int neighborhood_sample, std::string num_authors_bag, int author_max_lifetime, double cartel_outdegree_proportion, bool null_cartel, std::string output_file, std::string clonal_cartel_agent_file, std::string auxiliary_information_file, std::string log_file, int num_processors, int log_level) : edgelist(edgelist), nodelist(nodelist), out_degree_bag(out_degree_bag), recency_table(recency_table), recency_bins(recency_bins), alpha(alpha), minimum_alpha(minimum_alpha), use_alpha(use_alpha), start_from_checkpoint(start_from_checkpoint), planted_nodes(planted_nodes), fully_random_citations(fully_random_citations), preferential_weight(preferential_weight), fitness_weight(fitness_weight), num_authors_weight(num_authors_weight), author_reputation_weight(author_reputation_weight), fitness_value_min(fitness_value_min), fitness_value_max(fitness_value_max), fitness_lag_duration_min(fitness_lag_duration_min), fitness_lag_duration_max(fitness_lag_duration_max), fitness_peak_duration_min(fitness_peak_duration_min), fitness_peak_duration_max(fitness_peak_duration_max), minimum_preferential_weight(minimum_preferential_weight), minimum_fitness_weight(minimum_fitness_weight), in_degree_threshold(in_degree_threshold), fitness_threshold(fitness_threshold), recency_threshold(recency_threshold), non_random_generator_probability(non_random_generator_probability), growth_rate(growth_rate), num_cycles(num_cycles), same_year_citations(same_year_citations), neighborhood_sample(neighborhood_sample), num_authors_bag(num_authors_bag), author_max_lifetime(author_max_lifetime), cartel_outdegree_proportion(cartel_outdegree_proportion), null_cartel(null_cartel), output_file(output_file), clonal_cartel_agent_file(clonal_cartel_agent_file), auxiliary_information_file(auxiliary_information_file), log_file(log_file), num_processors(num_processors), log_level(log_level) {
             // initial validation
             if (this->log_file == "") {
                 std::cerr << "Log file is required" << std::endl;
@@ -61,6 +62,11 @@ class ABM {
             if (this->planted_nodes != "") {
                 this->ReadPlantedNodes();
             }
+
+            if (this->clonal_cartel_agent_file != "") {
+                this->InitilaizeClonalCartelAgentStruct();
+            }
+
             this->InitializeBinBoundaries();
             omp_set_num_threads(this->num_processors);
         };
@@ -73,6 +79,19 @@ class ABM {
                 this->timing_file_handle.close();
             }
         }
+
+        struct ClonalCartelAgent {
+            std::optional<int> num_authors;
+            std::optional<double> pa_weight;
+            std::optional<double> fit_weight;
+            std::optional<double> num_authors_weight;
+            std::optional<double> author_reputation_weight;
+            std::optional<int> out_degree;
+            std::optional<double> alpha;
+            std::optional<int> fitness_lag_duration;
+            std::optional<int> fitness_peak_value;
+            std::optional<int> fitness_peak_duration;
+        };
 
         int main();
         int WriteToLogFile(std::string message, Log message_type);
@@ -95,6 +114,7 @@ class ABM {
         std::unordered_map<int, std::vector<int>> GetNHopNeighborhood(Graph* graph, int current_year, const std::vector<int>& generator_nodes, int num_hops);
         int GetBinIndex(int year_diff);
         void InitializeBinBoundaries();
+        void InitilaizeClonalCartelAgentStruct();
         int GetBinIndex(Graph* graph, int current_node, int current_year);
         std::unordered_map<int, std::vector<int>> BinNeighborhood(Graph* graph, int current_year, std::vector<int> n_hop_list);
         std::unordered_map<int, double> GetBinnedRecencyProbabilities();
@@ -263,6 +283,7 @@ class ABM {
         double cartel_outdegree_proportion;
         bool null_cartel;
         std::string output_file;
+        std::string clonal_cartel_agent_file;
         std::string auxiliary_information_file;
         std::string log_file;
         int num_processors;
@@ -282,6 +303,7 @@ class ABM {
         const int max_out_degree = 249;
         int next_author_id = 0;
         int num_bins;
+        bool clonal_agent = false;
         std::uniform_real_distribution<double> fitness_value_uniform_distribution{0, 1};
         std::uniform_real_distribution<double> weights_uniform_distribution{0, 1};
         std::uniform_real_distribution<double> wrs_uniform_distribution{0, 1};
@@ -294,6 +316,7 @@ class ABM {
         std::unordered_map<int, std::unordered_map<int, std::unordered_map<std::string, std::string>>> planted_nodes_map;
         std::unordered_map<int, std::vector<std::pair<std::string, int>>> timing_map;
         std::chrono::time_point<std::chrono::steady_clock> prev_time;
+        ClonalCartelAgent clonal_cartel_agent;
 };
 
 #endif

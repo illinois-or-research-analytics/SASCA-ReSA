@@ -616,7 +616,7 @@ int ABM::MakeNullCartelCitations(Graph* graph, int author_id, const std::unorder
         for(auto const& node_id : current_node_vec) {
             int node_author_id = graph->GetIntAttribute("author_id", node_id);
             int node_cartel_id = graph->GetCartelID(node_author_id);
-            if (cartel_id == node_cartel_id) {
+            if (cartel_id == node_cartel_id && author_id != node_author_id) {
                 if(current_cartel_authors.contains(node_author_id)) {
                     in_neighborhood_cartel_nodes.push_back(node_id);
                     current_cartel_authors.erase(node_author_id);
@@ -637,6 +637,9 @@ int ABM::MakeNullCartelCitations(Graph* graph, int author_id, const std::unorder
     if (actual_num_cited < num_cartel_citations) {
         std::vector<int> cartel_nodes;
         for(auto const& cartel_author_id : graph->GetCartelAuthors(cartel_id)) {
+            if (cartel_author_id == author_id) {
+                continue;
+            }
             std::vector<int> cartel_author_publications = graph->GetAuthorPublications(cartel_author_id);
             std::vector<int> already_published_cartel_author_publications;
             for(size_t i = 0; i < cartel_author_publications.size(); i ++) {
@@ -676,7 +679,7 @@ int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unord
         for(auto const& node_id : current_node_vec) {
             int node_author_id = graph->GetIntAttribute("author_id", node_id);
             int node_cartel_id = graph->GetCartelID(node_author_id);
-            if (cartel_id == node_cartel_id) {
+            if (cartel_id == node_cartel_id && node_author_id != author_id) {
                 if(current_cartel_authors.contains(node_author_id)) {
                     in_neighborhood_cartel_nodes.push_back(node_id);
                     current_cartel_authors.erase(node_author_id);
@@ -697,6 +700,9 @@ int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unord
         int remaining_num_cartel_citations = num_cartel_citations - num_locally_cited;
         std::vector<int> outside_neighborhood_cartel_nodes;
         for(auto const& cartel_author_id : current_cartel_authors) {
+            if (cartel_author_id == author_id) {
+                continue;
+            }
             std::vector<int> cartel_author_publications = graph->GetAuthorPublications(cartel_author_id);
             std::vector<int> already_published_cartel_author_publications;
             for(size_t i = 0; i < cartel_author_publications.size(); i ++) {
@@ -844,9 +850,19 @@ std::vector<int> ABM::GetCartelGeneratorNodes(Graph* graph, int author_id) {
     pcg32 generator(rand_dev);
     std::vector<int> cartel_generator_nodes;
     int cartel_id = graph->GetCartelID(author_id);
+    const std::set<int> node_set = graph->GetNodeSet();
     for(auto const& cartel_author_id : graph->GetCartelAuthors(cartel_id)) {
+        if (cartel_author_id == author_id) {
+            continue;
+        }
         std::vector<int> cartel_author_publications = graph->GetAuthorPublications(cartel_author_id);
-        cartel_generator_nodes.insert(cartel_generator_nodes.end(), cartel_author_publications.begin(), cartel_author_publications.end());
+        for (const auto& cartel_author_publication : cartel_author_publications) {
+            if (!node_set.contains(cartel_author_publication)) {
+                continue;
+            }
+            cartel_generator_nodes.push_back(cartel_author_publication);
+        }
+        // cartel_generator_nodes.insert(cartel_generator_nodes.end(), cartel_author_publications.begin(), cartel_author_publications.end());
     }
     return cartel_generator_nodes;
 }
@@ -1344,6 +1360,62 @@ void ABM::InitializeBinBoundaries() {
     this->num_bins = element_no;
 }
 
+void ABM::InitilaizeClonalCartelAgentStruct() {
+    char delimiter = Utils::GetDelimiter(this->clonal_cartel_agent_file);
+    std::unordered_map<int, std::string> index_to_header_map = Utils::GetIndexToHeaderMap(delimiter, this->clonal_cartel_agent_file);
+    std::unordered_map<std::string, int> header_to_index_map = Utils::GetHeaderToIndexMap(delimiter, this->clonal_cartel_agent_file);
+    std::ifstream clonal_cartel_agent_stream(this->clonal_cartel_agent_file);
+    std::string line;
+    int line_no = 1;
+    while(std::getline(clonal_cartel_agent_stream, line)) {
+        std::stringstream ss(line);
+        std::string current_value;
+        std::vector<std::string> current_line;
+        while(std::getline(ss, current_value, delimiter)) {
+            current_line.push_back(current_value);
+        }
+        if(current_line.size() == 0) {
+            break;
+        }
+        if (line_no > 1) {
+            for(size_t i = 0; i < current_line.size(); i ++) {
+                std::string current_header = index_to_header_map[i];
+                if (current_header == "num_authors") {
+                    this->clonal_cartel_agent.num_authors = std::stoi(current_line[i]);
+                }
+                if (current_header == "pa_weight") {
+                    this->clonal_cartel_agent.pa_weight = std::stod(current_line[i]);
+                }
+                if (current_header == "fit_weight") {
+                    this->clonal_cartel_agent.fit_weight = std::stod(current_line[i]);
+                }
+                if (current_header == "num_authors_weight") {
+                    this->clonal_cartel_agent.num_authors_weight = std::stod(current_line[i]);
+                }
+                if (current_header == "author_reputation_weight") {
+                    this->clonal_cartel_agent.author_reputation_weight = std::stod(current_line[i]);
+                }
+                if (current_header == "out_degree") {
+                    this->clonal_cartel_agent.out_degree = std::stoi(current_line[i]);
+                }
+                if (current_header == "alpha") {
+                    this->clonal_cartel_agent.alpha = std::stod(current_line[i]);
+                }
+                if (current_header == "fitness_lag_duration") {
+                    this->clonal_cartel_agent.fitness_lag_duration = std::stoi(current_line[i]);
+                }
+                if (current_header == "fitness_peak_value") {
+                    this->clonal_cartel_agent.fitness_peak_value = std::stoi(current_line[i]);
+                }
+                if (current_header == "fitness_peak_duration") {
+                    this->clonal_cartel_agent.fitness_peak_duration = std::stoi(current_line[i]);
+                }
+            }
+        }
+        line_no += 1;
+    }
+}
+
 bool ABM::ValidateBinBoundaries() {
     this->WriteToLogFile(std::to_string(this->bin_boundaries.size()) + " bins have been created", Log::info);
     if (this->bin_boundaries.size() == 0) {
@@ -1386,6 +1458,11 @@ bool ABM::ValidateArguments() {
         this->WriteToLogFile("No agents will be planted", Log::info);
     } else {
         this->WriteToLogFile("planted_nodes: " + this->planted_nodes, Log::info);
+    }
+    if (this->clonal_cartel_agent_file == "") {
+        this->WriteToLogFile("No clonal cartel agents will be created", Log::info);
+    } else {
+        this->WriteToLogFile("clonal agents: " + this->clonal_cartel_agent_file, Log::info);
     }
     if (!this->ValidateArgument("Agent", "fully_random_citations", this->fully_random_citations, -42)) {
         return false;
@@ -1635,17 +1712,36 @@ int ABM::main() {
                 graph->UpdateAuthorManual(author_id);
                 cartel_author_ids.erase(cartel_author_ids.begin());
                 this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
-                // exp computed next year
-                num_authors_arr[graph_arr_index] = 6; // maybe just 3? this is median
-                // pa_weight_arr[weight_arr_index] = 0.25;
-                // fit_weight_arr[weight_arr_index] = 0.25;
-                // num_authors_weight_arr[weight_arr_index] = 0.25;
-                // author_reputation_weight_arr[weight_arr_index] = 0.25;
-                // out_degree_arr[weight_arr_index] = 35; // this is median
-                // alpha_arr[weight_arr_index] = 0.5;
-                fitness_lag_duration_arr[weight_arr_index] = 0;
-                fitness_peak_value_arr[weight_arr_index] = 1;
-                fitness_peak_duration_arr[weight_arr_index] = 1000;
+                if (this->clonal_cartel_agent.num_authors) {
+                    num_authors_arr[graph_arr_index] = this->clonal_cartel_agent.num_authors.value();
+                }
+                if (this->clonal_cartel_agent.pa_weight) {
+                    pa_weight_arr[weight_arr_index] = this->clonal_cartel_agent.pa_weight.value();
+                }
+                if (this->clonal_cartel_agent.fit_weight) {
+                    fit_weight_arr[weight_arr_index] = this->clonal_cartel_agent.fit_weight.value();
+                }
+                if (this->clonal_cartel_agent.num_authors_weight) {
+                    num_authors_weight_arr[weight_arr_index] = this->clonal_cartel_agent.num_authors_weight.value();
+                }
+                if (this->clonal_cartel_agent.author_reputation_weight) {
+                    author_reputation_weight_arr[weight_arr_index] = this->clonal_cartel_agent.author_reputation_weight.value();
+                }
+                if (this->clonal_cartel_agent.out_degree) {
+                    out_degree_arr[weight_arr_index] = this->clonal_cartel_agent.out_degree.value();
+                }
+                if (this->clonal_cartel_agent.alpha) {
+                    alpha_arr[weight_arr_index] = this->clonal_cartel_agent.alpha.value();
+                }
+                if (this->clonal_cartel_agent.fitness_lag_duration) {
+                    fitness_lag_duration_arr[weight_arr_index] = this->clonal_cartel_agent.fitness_lag_duration.value();
+                }
+                if (this->clonal_cartel_agent.fitness_peak_value) {
+                    fitness_peak_value_arr[weight_arr_index] = this->clonal_cartel_agent.fitness_peak_value.value();
+                }
+                if (this->clonal_cartel_agent.fitness_peak_duration) {
+                    fitness_peak_duration_arr[weight_arr_index] = this->clonal_cartel_agent.fitness_peak_duration.value();
+                }
             } else {
                 author_id = graph->GetNextAuthor(current_year, initial_cartel_author_ids);
                 this->UpdateGraphAttributesAuthors(graph, new_node, author_id);
@@ -1708,7 +1804,7 @@ int ABM::main() {
             remaining_citation_quota -= same_year_source_nodes.count(i); // could be 0 or 1
             int current_cartel_size = 0;
             if (graph->GetCartelID(author_id) > 0) {
-                current_cartel_size = graph->GetCartelAuthors(graph->GetCartelID(author_id)).size();
+                current_cartel_size = graph->GetCartelAuthors(graph->GetCartelID(author_id)).size() - 1; // -1 since we cite others only
             }
             int num_cartel_citations = std::min(num_cartel_citations_limit, current_cartel_size);
             remaining_citation_quota -= num_cartel_citations;
@@ -1854,6 +1950,7 @@ int ABM::main() {
     delete[] fit_weight_arr;
     delete[] num_authors_weight_arr;
     delete[] author_reputation_weight_arr;
+    delete[] planted_author_id_arr;
     delete[] out_degree_arr;
     delete[] random_weight_arr;
     delete[] current_score_arr;
