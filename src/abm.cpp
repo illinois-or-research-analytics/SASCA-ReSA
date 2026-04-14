@@ -603,8 +603,9 @@ int ABM::MakeUniformRandomCitations(Graph* graph, const std::unordered_map<int, 
 }
 
 
-int ABM::MakeNullCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations) {
+int ABM::MakeNullCartelCitations(Graph* graph, const std::vector<int>& generator_nodes, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations) {
     // assume at this point that we are a cartel author
+    std::set<int> generator_nodes_set(generator_nodes.begin(), generator_nodes.end());
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
     std::vector<int> in_neighborhood_cartel_nodes;
@@ -616,7 +617,7 @@ int ABM::MakeNullCartelCitations(Graph* graph, int author_id, const std::unorder
         for(auto const& node_id : current_node_vec) {
             int node_author_id = graph->GetIntAttribute("author_id", node_id);
             int node_cartel_id = graph->GetCartelID(node_author_id);
-            if (cartel_id == node_cartel_id && author_id != node_author_id) {
+            if (cartel_id == node_cartel_id && author_id != node_author_id && !generator_nodes_set.contains(node_id)) {
                 if(current_cartel_authors.contains(node_author_id)) {
                     in_neighborhood_cartel_nodes.push_back(node_id);
                     current_cartel_authors.erase(node_author_id);
@@ -634,40 +635,53 @@ int ABM::MakeNullCartelCitations(Graph* graph, int author_id, const std::unorder
         actual_num_cited += 1;
     }
     std::set<int> in_neighborhood_cartel_nodes_set(in_neighborhood_cartel_nodes.begin(), in_neighborhood_cartel_nodes.end());
+    if(in_neighborhood_cartel_nodes.size() != in_neighborhood_cartel_nodes_set.size()) {
+        std::cerr << "error: duplicate nodes inside in_neighborhood_cartel_nodes" << std::endl;
+    }
     if (actual_num_cited < num_cartel_citations) {
         std::vector<int> cartel_nodes;
-        for(auto const& cartel_author_id : graph->GetCartelAuthors(cartel_id)) {
+        // for(auto const& cartel_author_id : graph->GetCartelAuthors(cartel_id)) {
+        for(auto const& cartel_author_id : current_cartel_authors) {
             if (cartel_author_id == author_id) {
                 continue;
             }
             std::vector<int> cartel_author_publications = graph->GetAuthorPublications(cartel_author_id);
             std::vector<int> already_published_cartel_author_publications;
             for(size_t i = 0; i < cartel_author_publications.size(); i ++) {
-                if (graph->GetNodeSet().contains(cartel_author_publications.at(i)) && !in_neighborhood_cartel_nodes_set.contains(cartel_author_publications.at(i))) {
+                if (graph->GetNodeSet().contains(cartel_author_publications.at(i)) && !in_neighborhood_cartel_nodes_set.contains(cartel_author_publications.at(i)) && !generator_nodes_set.contains(cartel_author_publications.at(i))) {
                     already_published_cartel_author_publications.push_back(cartel_author_publications.at(i));
                 }
             }
             // assume that a cartel author has publications already
             if (already_published_cartel_author_publications.size() > 0) {
                 std::ranges::shuffle(already_published_cartel_author_publications, generator);
-                cartel_nodes.push_back(already_published_cartel_author_publications.at(0));
+                // cartel_nodes.push_back(already_published_cartel_author_publications.at(0));
+                if (actual_num_cited == num_cartel_citations) {
+                    break;
+                }
+                if(in_neighborhood_cartel_nodes_set.contains(already_published_cartel_author_publications.at(0))) {
+                    std::cerr << "error: in_neighborhood_cartel_nodes_set already contains outside neighborhood citation" << std::endl;
+                }
+                citations[actual_num_cited] = already_published_cartel_author_publications.at(0);
+                actual_num_cited += 1;
             }
         }
-        std::ranges::shuffle(cartel_nodes, generator);
-        for(size_t i = 0; i < cartel_nodes.size(); i ++) {
-            if (actual_num_cited == num_cartel_citations) {
-                break;
-            }
-            citations[actual_num_cited] = cartel_nodes.at(i);
-            actual_num_cited += 1;
-        }
+        // std::ranges::shuffle(cartel_nodes, generator);
+        // for(size_t i = 0; i < cartel_nodes.size(); i ++) {
+        //     if (actual_num_cited == num_cartel_citations) {
+        //         break;
+        //     }
+        //     citations[actual_num_cited] = cartel_nodes.at(i);
+        //     actual_num_cited += 1;
+        // }
     }
 
     return actual_num_cited;
 }
 
-int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int current_year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size) {
+int ABM::MakeScoredCartelCitations(Graph* graph, const std::vector<int>& generator_nodes, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int current_year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size) {
     // first handle within neighborhood
+    std::set<int> generator_nodes_set(generator_nodes.begin(), generator_nodes.end());
     pcg_extras::seed_seq_from<std::random_device> rand_dev;
     pcg32 generator(rand_dev);
     std::vector<int> in_neighborhood_cartel_nodes;
@@ -679,7 +693,7 @@ int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unord
         for(auto const& node_id : current_node_vec) {
             int node_author_id = graph->GetIntAttribute("author_id", node_id);
             int node_cartel_id = graph->GetCartelID(node_author_id);
-            if (cartel_id == node_cartel_id && node_author_id != author_id) {
+            if (cartel_id == node_cartel_id && node_author_id != author_id && !generator_nodes_set.contains(node_id)) {
                 if(current_cartel_authors.contains(node_author_id)) {
                     in_neighborhood_cartel_nodes.push_back(node_id);
                     current_cartel_authors.erase(node_author_id);
@@ -706,7 +720,7 @@ int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unord
             std::vector<int> cartel_author_publications = graph->GetAuthorPublications(cartel_author_id);
             std::vector<int> already_published_cartel_author_publications;
             for(size_t i = 0; i < cartel_author_publications.size(); i ++) {
-                if (graph->GetNodeSet().contains(cartel_author_publications.at(i)) && !in_neighborhood_cartel_nodes_set.contains(cartel_author_publications.at(i))) {
+                if (graph->GetNodeSet().contains(cartel_author_publications.at(i)) && !in_neighborhood_cartel_nodes_set.contains(cartel_author_publications.at(i)) && !generator_nodes_set.contains(cartel_author_publications.at(i))) {
                     already_published_cartel_author_publications.push_back(cartel_author_publications.at(i));
                 }
             }
@@ -726,14 +740,14 @@ int ABM::MakeScoredCartelCitations(Graph* graph, int author_id, const std::unord
     return num_locally_cited;
 }
 
-int ABM::MakeCartelCitations(Graph* graph, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int current_year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size) {
+int ABM::MakeCartelCitations(Graph* graph, const std::vector<int>& generator_nodes, int author_id, const std::unordered_map<int, int>& continuous_node_mapping, const std::unordered_map<int, std::vector<int>>& n_hop_map, int* citations, int num_cartel_citations, int current_year, const std::unordered_map<int, double>& binned_recency_probabilities, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size) {
     if (num_cartel_citations == 0) {
         return 0;
     }
     if (this->null_cartel) {
-        return this->MakeNullCartelCitations(graph, author_id, continuous_node_mapping, n_hop_map, citations, num_cartel_citations);
+        return this->MakeNullCartelCitations(graph, generator_nodes, author_id, continuous_node_mapping, n_hop_map, citations, num_cartel_citations);
     }
-    return this->MakeScoredCartelCitations(graph, author_id, continuous_node_mapping, n_hop_map, citations, num_cartel_citations, current_year, binned_recency_probabilities, pa_arr, fit_arr, na_arr, ar_arr, pa_weight, fit_weight, num_authors_weight, author_reputation_weight, current_graph_size);
+    return this->MakeScoredCartelCitations(graph, generator_nodes, author_id, continuous_node_mapping, n_hop_map, citations, num_cartel_citations, current_year, binned_recency_probabilities, pa_arr, fit_arr, na_arr, ar_arr, pa_weight, fit_weight, num_authors_weight, author_reputation_weight, current_graph_size);
 }
 
 int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continuous_node_mapping, int current_year, const std::vector<int>& candidate_nodes, int* citations, double* pa_arr, double* fit_arr, double* na_arr, double* ar_arr, double pa_weight, double fit_weight, double num_authors_weight, double author_reputation_weight, int current_graph_size, int num_citations) {
@@ -1158,7 +1172,18 @@ std::unordered_map<int, std::vector<int>> ABM::GetOneAndTwoDistanceNeighborhoods
                             }
                         }
                     }
-                    std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(n_hop_map[2]), max_neighborhood_size - n_hop_map[2].size(), generator);
+                    // std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(n_hop_map[2]), max_neighborhood_size - n_hop_map[2].size(), generator);
+                    // if (n_hop_map[2].size() == max_neighborhood_size) {
+                    //     return n_hop_map;
+                    // }
+                    std::vector<int> sampled_neighborhood;
+                    std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(sampled_neighborhood), max_neighborhood_size - n_hop_map[2].size(), generator);
+                    for(size_t i = 0; i < sampled_neighborhood.size(); i ++) {
+                        if (!visited.contains(sampled_neighborhood.at(i))) {
+                            visited.insert(sampled_neighborhood.at(i));
+                            n_hop_map[2].push_back(sampled_neighborhood.at(i));
+                        }
+                    }
                     if (n_hop_map[2].size() == max_neighborhood_size) {
                         return n_hop_map;
                     }
@@ -1286,7 +1311,20 @@ std::unordered_map<int, std::vector<int>> ABM::GetNHopNeighborhood(Graph* graph,
                             }
                         }
                     }
-                    std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(n_hop_neighborhood), max_neighborhood_size - n_hop_neighborhood.size(), generator);
+                    // std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(n_hop_neighborhood), max_neighborhood_size - n_hop_neighborhood.size(), generator);
+                    // if (n_hop_neighborhood.size() == max_neighborhood_size) {
+                    //     n_hop_map[1] = n_hop_neighborhood;
+                    //     return n_hop_map;
+                    // }
+                    std::vector<int> sampled_neighborhood;
+                    // std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(n_hop_neighborhood), max_neighborhood_size - n_hop_neighborhood.size(), generator);
+                    std::sample(to_be_sampled_neighborhood.begin(), to_be_sampled_neighborhood.end(), std::back_inserter(sampled_neighborhood), max_neighborhood_size - n_hop_neighborhood.size(), generator);
+                    for(size_t i = 0; i < sampled_neighborhood.size(); i ++) {
+                        if (!visited.contains(sampled_neighborhood.at(i))) {
+                            visited.insert(sampled_neighborhood.at(i));
+                            n_hop_neighborhood.push_back(sampled_neighborhood.at(i));
+                        }
+                    }
                     if (n_hop_neighborhood.size() == max_neighborhood_size) {
                         n_hop_map[1] = n_hop_neighborhood;
                         return n_hop_map;
@@ -1821,7 +1859,7 @@ int ABM::main() {
             }
             local_prev_time = this->LocalLogTime(local_parallel_stage_time_vec, local_prev_time, "make same year citations");
 
-            num_actually_cited += this->MakeCartelCitations(graph, author_id, continuous_node_mapping, n_hop_map, citations + num_actually_cited, num_cartel_citations, current_year, binned_recency_probabilities, pa_arr, fit_arr, na_arr, ar_arr, pa_weight, fit_weight, num_authors_weight, author_reputation_weight, current_graph_size);
+            num_actually_cited += this->MakeCartelCitations(graph, generator_nodes, author_id, continuous_node_mapping, n_hop_map, citations + num_actually_cited, num_cartel_citations, current_year, binned_recency_probabilities, pa_arr, fit_arr, na_arr, ar_arr, pa_weight, fit_weight, num_authors_weight, author_reputation_weight, current_graph_size);
             // remove cartel cited nodes from n_hop_map
             std::set<int> cited_elements(citations, citations + num_actually_cited);
             std::unordered_map<int, std::vector<int>> filtered_n_hop_map;
