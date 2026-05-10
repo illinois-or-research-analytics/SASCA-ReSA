@@ -77,6 +77,8 @@ same_year_citations=<DOUBLE> ; floating point value e.g., 0.12 for 12%
 fully_random_citations=<DOUBLE> ; floating point value e.g., 0.05 for 5%
 preferential_weight=<DOUBLE> ; floating point value e.g., 0.33
 fitness_weight=<DOUBLE> ; floating point value e.g., 0.33
+num_authors_weight=<DOUBLE> ; floating point value e.g., 0.33
+author_reputation_weight=<DOUBLE> ; floating point value e.g., 0.33
 fitness_value_min=<INT> ; minimum fitness value (inclusive)
 fitness_value_max=<INT> ; maximum fitness value (inclusive)
 fitness_lag_duration_min=<INT> ; minimum lag duration in years (inclusive)
@@ -145,6 +147,8 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `fully_random_citations`: floating point value e.g., 0.05 for 5%. This value determines the proportion of assigned out-degree that goes towards citing any node from the graph in a fully random manner.
 - `preferential_weight`: floating point value e.g., 0.33. This value can be left -1 for agents with random weights or a constant value for static agents.
 - `fitness_weight`: floating point value e.g., 0.33. This value can be left -1 for agents with random weights or a constant value for static agents.
+- `num_authors_weight`: floating point value e.g., 0.33. This value can be left -1 for agents with random weights or a constant value for static agents.
+- `author_reputation_weight`: floating point value e.g., 0.33. This value can be left -1 for agents with random weights or a constant value for static agents.
 - `fitness_value_min`: minimum possible integer fitness value for each agent.
 - `fitness_value_max`: maximum possible integer fitness value for each agent.
 - `fitness_lag_duration_min`: minimum lag duration in years (inclusive). The fitness decay model in SASCA-ReSA works as follows. For the first `x` number of years, an agent is dormant and has the lowest possible fitness value. Afterwards, the agent immediately gains its full fitness value and retains it for `y` number of years. Finally, the fitness power for the agent decays according to a decaying power-law curve. `x` and `y` here are drawn from uniform distributions built by the lag duration min/max values and peak duration min/max values, respectively.
