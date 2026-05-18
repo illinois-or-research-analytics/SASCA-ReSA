@@ -67,7 +67,7 @@ out_degree_bag=<FILE> ; csv derived from a real-world network
 growth_rate=<DOUBLE> ; floating point value e.g., 0.03 for 3%
 num_cycles=<INT> ; integer value e.g., 30 for a 30-year simulation
 recency_bins=<STRING> ; string with comma separated values for each bin
-planted_agents=<(optional) FILE> ; csv with planted agent with a planted agent per line.
+planted_agents=<(optional) FILE> ; csv with planted agent with a planted agent per line. See below for the list of supported columns.
 start_from_checkpoint=<BOOL> ; boolean value e.g., true or false for whether to start from a checkpoint or not
 
 [Agent]
@@ -92,9 +92,9 @@ recency_threshold=<INT> ; used for non-random generator selection. Selects only 
 non_random_generator_probability=<DOUBLE> ; used for non-random generator selection. 0.9 for 90% of the nodes picking non-random generators
 author_max_lifetime=<INT> ; used for the maximum amount of years that an author is allowed to publish
 num_authors_bag=<FILE> ; used for sampling the number of authors per paper
-cartel_outdegree_proportion=<DOUBLE> ; the proportion of out-degree that should go towards within the cartel group
-null_cartel=<BOOL> ; boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not
-clonal_cartel_agent_file<(optional) FILE> ; csv with clonal agent attributes
+cartel_outdegree_proportion=<DOUBLE> ; the proportion of out-degree that should go towards within the cartel group. See below for important cartel information.
+null_cartel=<BOOL> ; boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not. See below for important cartel information.
+clonal_cartel_agent_file<(optional) FILE> ; csv with clonal agent attributes. See below for important cartel information.
 
 [General]
 output_file=<FILE> ; output csv edgelist
@@ -137,7 +137,7 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `growth_rate`: floating point value, e.g., 0.03 for 3%, which serves as the exponent for the exponential growth formula used in determining how many new agents should spawn per cycle of simulation.
 - `num_cycles`: integer value e.g., 30 for a 30-year simulation
 - `recency_bins`: This string is a user supplied comma separated string such that each comma separated value in the string is the start of the bin boundary. For example, a string "1,2,5,10,20" represents a binning for recency such that the first bin contains all publications that are less than 2 year old, meaning 1 <= current year - publication year < 2. It follows that the second bin now are publications that are at least 2 years old but at most 4 years old (2 <= current year - publication year < 5). The last bin is implied to go on until infinity so in this example, the last bin contains all publications that are at least 20 years old (20 <= current\_year - publication year < infinity).
-- `planted_agents`: an optional csv file with planted agents. The only required column is the "year" column. The year column specifies the relative year, from the start of the simulation, when the node should be planted. 1 is the earliest relative year an agent can be planted. Any column header here must match the exact name in the output nodelist.
+- `planted_agents`: an optional csv file with planted agents. The only required column is the "year" column. The year column specifies the relative year, from the start of the simulation, when the node should be planted. 1 is the earliest relative year an agent can be planted. Any column header here must match the exact name in the output nodelist. Only supported columns are "pa_weight", "fit_weight", "num_authors_weight", "author_reputation_weight", "out_degree", "alpha", "fit_lag_duration", "fit_peak_value", "fit_peak_duration", "num_authors", and "author_id."
 - `start_from_checkpoint` boolean value e.g., true or false for whether to start from a checkpoint or not. Check notes about `nodelist` and `edgelist` if this flag is set to true.
 
 #### Agent flags
@@ -162,9 +162,9 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `non_random_generator_probability`: Probability of each node to select a generator node in a non-random manner according to the different thresholds. Set to 0 for fully random and 1 for all non-random.
 - `author_max_lifetime`: used for the maximum amount of years that an author is allowed to publish. When this value is `k`, the difference between the publication year of the last paper and the publication year of the first paper of any given author cannot exceed `k`.
 - `num_authors_bag` : used for sampling the number of authors per paper. This is a CSV wherelthe header line is ignored and each subsequent line is structed as (index,number of authors). The index column is not used, and the number of authors column is used to sample a number for the number of authors for each paper.
-- `cartel_outdegree_proportion` : the proportion of out-degree that should go towards within the cartel group. Even if there are no cartel authors, make sure to set this to some value between 0 and 1. It will not be used if there are no cartel authors.
-- `null_cartel` : boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not. Set this to either true or falses even if  there are no cartel authors. It will not be used if there are no cartel authors.
-- `clonal_cartel_agent_file` : csv with clonal agent attributes. The allowed columns are num\_authors,pa\_weight,fit\_weight,num\_authors\_weight,author\_reputation\_weight,out\_degree,alpha,fitness\_lag\_duration,fitness\_peak\_value, and fitness\_peak\_duration. The order of the columns do not matter, and any subset of these columns can be used and others omitted in the csv file.
+- `cartel_outdegree_proportion` : the proportion of out-degree that should go towards within the cartel group. Even if there are no cartel authors, make sure to set this to some value between 0 and 1. It will not be used if there are no cartel authors. **See below for important cartel information.**
+- `null_cartel` : boolean value e.g., true or false for whether to have cartel nodes cite randomly within the cartel or not. Set this to either true or falses even if there are no cartel authors. It will not be used if there are no cartel authors. **See below for important cartel information.**
+- `clonal_cartel_agent_file` : csv with clonal agent attributes. The allowed columns are num\_authors,pa\_weight,fit\_weight,num\_authors\_weight,author\_reputation\_weight,out\_degree,alpha,fitness\_lag\_duration,fitness\_peak\_value, and fitness\_peak\_duration. The order of the columns do not matter, and any subset of these columns can be used and others omitted in the csv file. **See below for important cartel information.**
 
 
 #### General flags
@@ -173,3 +173,20 @@ In order to do a "single-bin model" run, in which agents cite based on preferent
 - `log_file`: output log file. This log file contains information about the run itself such as the runtime. The configuration file flags will be parsed and the parsed results will be written to this file before the simulation begins. Additionally, an extra file is created in the same directory as the log file containing the wall-time of individual stages inside the simulator.
 - `num_processors`: integer valued maximum parallelism allowed. Used for setting the maximum number of workers.
 - `log_level`: enum flag where 0, 1, and 2 correspond to silent, info, and verbose, respectively.
+
+## Cartel Information
+The codebase itself never adds authors to a cartel. When a brand new simulation begins without starting from a checkpointed output, the nodelist is read in and author ids are assigned to each node in the nodelist. In this use case, no cartel publications will be generated for the entirety of the simulation.
+
+When a simulation begins from a checkpointed output, the author id and cartel id columns are read in from the nodelist, and this is the only process that defines the set of authors that will be in a cartel. Therefore, to initiate a cartel simulation, one must start from a brand new simulation for at least 0 years, modify the output nodelist manually, and then do a second simulation from the modified output as a checkpointed run.
+
+When modifying the output nodelist manually, there are two key details that must be followed.
+1. Pick the set of authors first from the set of author ids already present in the nodelist.
+2. For every publication authored by those authors, set the cartel id column to be either 1 or 0. 1 indicates that it is a true cartel whose behavior is further defined by the null cartel flag. When null cartel is true, the behavior of the cartel authors will follow "cartel-r". When null cartel is false, the behavior of the cartel authors will follow "cartel-p." See individual flag descriptions for more detail. 0, however, indicates that it is a control cartel, meaning that these authors will be guaranteed to publish a publication each year but will behave as background agents for all other aspects (e.g., generator nodes are not always other cartel nodes).
+
+Remember that
+- Cartel nodes have other cartel nodes as their generator nodes
+- Cartel nodes will try to cite a publication from each of the cartel members but will prioritize citing from those cartel author publications that are within the 2-hop neighborhood first.
+
+
+## Fitness Information
+For constant fitness, set minimum/maximum fitness lag duration to be 0 and minimum/maximum fitness peak duration to be 1000.
