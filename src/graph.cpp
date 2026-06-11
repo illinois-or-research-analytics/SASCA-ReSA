@@ -139,7 +139,7 @@ void Graph::ParseNodelist() {
                 previous_year = node_year_vec.at(previous_index).second;
             }
         }
-        if (previous_index != node_year_vec.size() - 1) {
+        if (previous_index < node_year_vec.size()) {
             this->ComputeAuthorReputations();
             for(size_t j = previous_index; j < node_year_vec.size(); j ++) {
                 int node_id = node_year_vec.at(j).first;
