@@ -300,7 +300,7 @@ class ABM {
         const int recency_limit = 3;
         const int peak_constant = 2;
         const int delay_constant = 500;
-        const int max_out_degree = 249;
+        const int max_out_degree = 1500;
         int next_author_id = 0;
         int num_bins;
         bool clonal_agent = false;

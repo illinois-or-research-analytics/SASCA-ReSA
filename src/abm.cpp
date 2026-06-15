@@ -91,7 +91,12 @@ void ABM::ReadOutDegreeBag() {
             break;
         }
         if(line_no != 0) {
-            this->out_degree_bag_vec.push_back(std::stoi(current_line[1]));
+            int current_out_degree = std::stoi(current_line[1]);
+            if (current_out_degree > this->max_out_degree) {
+                std::cerr << "Maximum out-degrree defined in the header file is less than the out-degree read from the input out-degree bag. Aborting." << std::endl;
+                exit(1);
+            }
+            this->out_degree_bag_vec.push_back(current_out_degree);
         }
         line_no ++;
     }
@@ -830,9 +835,15 @@ int ABM::MakeCitations(Graph* graph, const std::unordered_map<int, int>& continu
     }
     std::ranges::shuffle(element_index_vec, generator);
     /* std::sort(element_index_vec.begin(), element_index_vec.end(), [](auto& left, auto& right){ */
-    std::partial_sort(element_index_vec.begin(), element_index_vec.begin() + actual_num_cited, element_index_vec.end(), [](auto& left, auto& right){
-        return left.first > right.first; // read
-    });
+    if ((size_t)actual_num_cited == candidate_nodes.size()) {
+        std::sort(element_index_vec.begin(), element_index_vec.end(), [](auto& left, auto& right){
+            return left.first > right.first; // read
+        });
+    } else {
+        std::partial_sort(element_index_vec.begin(), element_index_vec.begin() + actual_num_cited, element_index_vec.end(), [](auto& left, auto& right){
+            return left.first > right.first; // read
+        });
+    }
     for (int i = 0; i < actual_num_cited; i ++) {
         citations[i] = element_index_vec[i].second;
     }
