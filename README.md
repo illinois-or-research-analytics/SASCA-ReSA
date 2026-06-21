@@ -1,5 +1,4 @@
-# SASCA(-ReSA): Scalable Agent-based Simulator for Citation Analysis (with Recency-emphasized Sampling and Author layer)
-SASCA, or Scalable Agent-based Simulator for Citation Analysis, as the name suggests, is a scalable agent-based modeling simulator that can begin with a small seed network and simulate an exponential network growth to reach sizes of 100 million nodes and more. Currently, SASCA is implemented in modern C++ and can be run across hundreds of cores.
+The _Scalable Agent-based Simulator for Citation Analysis SASCA(-ReSA)_ is a scalable agent-based modeling simulator that can begin with a small seed network and simulate an exponential network growth to reach sizes of 100 million nodes and more. Currently, SASCA is implemented in modern C++ and can be run across hundreds of cores.
 
 ## Recent changelogs
 6.2.8: Adds out-degree safeguarding based on the constant in the header file of abm and the input out-degree bag file.
