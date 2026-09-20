@@ -16,6 +16,9 @@ else()
     find_package(Eigen3 REQUIRED)
     find_package(OpenMP REQUIRED)
 
+    find_package(Arrow REQUIRED CONFIG)
+    find_package(Parquet REQUIRED CONFIG)
+
     set(ABM_MAJOR_VERSION 6)
     set(ABM_MINOR_VERSION 2)
     set(ABM_PATCH_VERSION 8)
@@ -55,8 +58,12 @@ else()
     target_link_libraries(abm PUBLIC Eigen3::Eigen)
     target_link_libraries(abm PUBLIC external_header_libs)
 
+    target_link_libraries(abm PUBLIC Arrow::arrow_shared)
+    target_link_libraries(abm PUBLIC Parquet::parquet_shared)
+
     target_include_directories(abm
-        PUBLIC ${CMAKE_SOURCE_DIR}/includes
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}/includes
     )
 
 
